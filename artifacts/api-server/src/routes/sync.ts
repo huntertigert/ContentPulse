@@ -22,6 +22,10 @@ async function fetchText(url: string): Promise<string> {
   return res.text();
 }
 
+function stripCdata(value: string): string {
+  return value.replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "").trim();
+}
+
 function extractTags(xml: string, tag: string): string[] {
   const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "gi");
   const matches: string[] = [];
@@ -34,7 +38,7 @@ function extractTags(xml: string, tag: string): string[] {
 
 function extractTag(xml: string, tag: string): string | null {
   const m = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i").exec(xml);
-  return m ? m[1].trim() : null;
+  return m ? stripCdata(m[1].trim()) : null;
 }
 
 async function parseSitemap(url: string, depth = 0): Promise<SitemapEntry[]> {
