@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,11 +9,15 @@ import {
   Trash2, 
   ExternalLink,
   Search,
-  Filter
+  Filter,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { PageFreshness, PageFreshnessTriageStatus } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
 import { useDashboardMutations } from '@/hooks/use-dashboard';
+
+const PAGE_SIZE = 12;
 
 interface DataTableProps {
   pages: PageFreshness[];
@@ -22,6 +26,7 @@ interface DataTableProps {
 export function DataTable({ pages }: DataTableProps) {
   const [activeTab, setActiveTab] = useState<PageFreshnessTriageStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const { deletePage } = useDashboardMutations();
 
   const filteredPages = pages.filter(page => {
@@ -30,6 +35,12 @@ export function DataTable({ pages }: DataTableProps) {
                           (page.title || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   }).sort((a, b) => b.decayScore - a.decayScore);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPages.length / PAGE_SIZE));
+  const pagedResults = filteredPages.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery]);
 
   const tabs: { id: PageFreshnessTriageStatus | 'all', label: string, count: number, color?: string }[] = [
     { id: 'all', label: 'All Pages', count: pages.length },
@@ -114,8 +125,8 @@ export function DataTable({ pages }: DataTableProps) {
             </thead>
             <tbody className="divide-y divide-white/5">
               <AnimatePresence>
-                {filteredPages.length > 0 ? (
-                  filteredPages.map((page, i) => (
+                {pagedResults.length > 0 ? (
+                  pagedResults.map((page, i) => (
                     <motion.tr 
                       key={page.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -218,6 +229,58 @@ export function DataTable({ pages }: DataTableProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredPages.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
+            <p className="text-xs text-muted-foreground">
+              Showing <span className="text-foreground font-medium">{(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredPages.length)}</span> of <span className="text-foreground font-medium">{filteredPages.length}</span> pages
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | '…')[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && (arr[idx - 1] as number) < p - 1) acc.push('…');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === '…' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground text-sm">…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setCurrentPage(item as number)}
+                      className={cn(
+                        "w-8 h-8 rounded-lg text-sm font-medium transition-all",
+                        currentPage === item
+                          ? "bg-primary text-primary-foreground shadow-[0_0_10px_rgba(99,102,241,0.3)]"
+                          : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                      )}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
