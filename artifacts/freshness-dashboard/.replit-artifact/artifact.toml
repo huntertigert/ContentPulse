@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Content Freshness Dashboard"
+version = "1.0.0"
+id = "artifacts/freshness-dashboard"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 23351
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/freshness-dashboard run dev"
+
+[services.env]
+PORT = "23351"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/freshness-dashboard", "run", "build"]
+publicDir = "artifacts/freshness-dashboard/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

@@ -1,0 +1,14 @@
+packages:
+  "framer-motion": "For smooth layout transitions and the freshness loop animation"
+  "date-fns": "For formatting 'time ago' relative dates"
+  "clsx": "For conditional class names merging"
+  "tailwind-merge": "For proper tailwind class conflict resolution"
+
+images:
+  - path: "artifacts/freshness-dashboard/public/images/bg-glow.png"
+    description: "A very subtle, abstract dark background with soft, blurred indigo and emerald light leaks. Deep space vibe."
+    aspect_ratio: "16:9"
+
+notes:
+  - Using generated Orval hooks from @workspace/api-client-react
+  - Force dark mode on body via index.css and Tailwind config

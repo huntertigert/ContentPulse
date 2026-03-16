@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Content Freshness Dashboard API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: pages
+    description: Page freshness operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /pages:
+    get:
+      operationId: getPages
+      tags: [pages]
+      summary: Get all pages with freshness data
+      responses:
+        "200":
+          description: List of pages with freshness scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PageFreshness"
+    post:
+      operationId: createPage
+      tags: [pages]
+      summary: Add a page to track
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePageInput"
+      responses:
+        "201":
+          description: Created page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageFreshness"
+  /pages/upload-csv:
+    post:
+      operationId: uploadCsv
+      tags: [pages]
+      summary: Upload CSV to bulk import pages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvUploadInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsvUploadResult"
+  /pages/{id}:
+    delete:
+      operationId: deletePage
+      tags: [pages]
+      summary: Delete a tracked page
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+  /pages/stats:
+    get:
+      operationId: getStats
+      tags: [pages]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +109,132 @@ components:
           type: string
       required:
         - status
-
+    PageFreshness:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        title:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+        clicks30d:
+          type: integer
+        clicksPrev30d:
+          type: integer
+        wordCount:
+          type: integer
+        excerpt:
+          type: string
+        freshnessScore:
+          type: number
+          description: 0-100 score indicating content freshness
+        decayScore:
+          type: number
+          description: 0-100 score indicating content decay (higher = more decayed)
+        triageStatus:
+          type: string
+          enum: [critical, review, healthy]
+        aiCitationLikely:
+          type: boolean
+          description: Whether the page is likely to be cited by AI search
+        aiCitationReason:
+          type: string
+        daysSinceUpdate:
+          type: integer
+        trafficTrend:
+          type: string
+          enum: [up, down, stable]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - url
+        - lastUpdated
+        - clicks30d
+        - clicksPrev30d
+        - wordCount
+        - freshnessScore
+        - decayScore
+        - triageStatus
+        - aiCitationLikely
+        - daysSinceUpdate
+        - trafficTrend
+        - createdAt
+    CreatePageInput:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+        clicks30d:
+          type: integer
+        clicksPrev30d:
+          type: integer
+        wordCount:
+          type: integer
+        excerpt:
+          type: string
+      required:
+        - url
+        - lastUpdated
+        - clicks30d
+        - clicksPrev30d
+        - wordCount
+    CsvUploadInput:
+      type: object
+      properties:
+        csvData:
+          type: string
+          description: CSV content as a string
+      required:
+        - csvData
+    CsvUploadResult:
+      type: object
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - imported
+        - skipped
+        - errors
+    DashboardStats:
+      type: object
+      properties:
+        totalPages:
+          type: integer
+        freshPercent:
+          type: number
+          description: Percentage of pages under 90 days old
+        criticalCount:
+          type: integer
+        reviewCount:
+          type: integer
+        healthyCount:
+          type: integer
+        avgFreshnessScore:
+          type: number
+        aiCitationReadyCount:
+          type: integer
+      required:
+        - totalPages
+        - freshPercent
+        - criticalCount
+        - reviewCount
+        - healthyCount
+        - avgFreshnessScore
+        - aiCitationReadyCount
