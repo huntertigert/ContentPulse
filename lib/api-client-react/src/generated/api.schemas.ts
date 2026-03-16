@@ -36,12 +36,9 @@ export interface PageFreshness {
   clicksPrev30d: number;
   wordCount: number;
   excerpt?: string;
-  /** 0-100 score indicating content freshness */
   freshnessScore: number;
-  /** 0-100 score indicating content decay (higher = more decayed) */
   decayScore: number;
   triageStatus: PageFreshnessTriageStatus;
-  /** Whether the page is likely to be cited by AI search */
   aiCitationLikely: boolean;
   aiCitationReason?: string;
   daysSinceUpdate: number;
@@ -60,7 +57,6 @@ export interface CreatePageInput {
 }
 
 export interface CsvUploadInput {
-  /** CSV content as a string */
   csvData: string;
 }
 
@@ -72,11 +68,43 @@ export interface CsvUploadResult {
 
 export interface DashboardStats {
   totalPages: number;
-  /** Percentage of pages under 90 days old */
   freshPercent: number;
   criticalCount: number;
   reviewCount: number;
   healthyCount: number;
   avgFreshnessScore: number;
   aiCitationReadyCount: number;
+}
+
+export interface Settings {
+  sitemapUrl?: string;
+  gscSiteUrl?: string;
+  /** True if a service account JSON has been saved (does not expose the key itself) */
+  gscHasCredentials: boolean;
+  lastSitemapSync?: string;
+  lastGscSync?: string;
+  autoSyncEnabled: boolean;
+}
+
+export interface UpdateSettingsInput {
+  sitemapUrl?: string;
+  gscSiteUrl?: string;
+  /** Full JSON string of the Google service account key file */
+  gscServiceAccountJson?: string;
+  autoSyncEnabled?: boolean;
+}
+
+export interface SyncResult {
+  success: boolean;
+  message: string;
+  upserted: number;
+  updated: number;
+  errors: string[];
+}
+
+export interface SyncStatus {
+  lastSitemapSync?: string;
+  lastGscSync?: string;
+  sitemapConfigured: boolean;
+  gscConfigured: boolean;
 }

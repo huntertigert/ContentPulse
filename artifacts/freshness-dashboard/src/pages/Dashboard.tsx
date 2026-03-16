@@ -1,58 +1,68 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, FileWarning, CheckCircle, Sparkles, Plus } from 'lucide-react';
+import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
+import { useSettings, useSyncActions } from '@/hooks/use-sync';
 import { StatCard } from '@/components/StatCard';
 import { FreshnessLoop } from '@/components/FreshnessLoop';
 import { DataTable } from '@/components/DataTable';
 import { CsvUploadModal } from '@/components/CsvUploadModal';
+import { ConnectModal } from '@/components/ConnectModal';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const { pages, stats, isLoading } = useDashboardData();
+  const { settings, syncStatus } = useSettings();
+  const { syncSitemap, syncGsc } = useSyncActions();
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
+  const isConnected = syncStatus?.sitemapConfigured || syncStatus?.gscConfigured
+    || settings?.sitemapUrl || settings?.gscHasCredentials;
+  const isSyncing = syncSitemap.isPending || syncGsc.isPending;
+
+  const handleQuickSync = () => {
+    if (syncStatus?.sitemapConfigured || settings?.sitemapUrl) syncSitemap.mutate({});
+    if ((syncStatus?.gscConfigured || settings?.gscHasCredentials) && !syncSitemap.isPending) syncGsc.mutate({});
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           <p className="text-muted-foreground font-medium animate-pulse">Loading dashboard data...</p>
         </div>
       </div>
     );
   }
 
-  // Fallback defaults if stats are not yet generated
   const safeStats = stats || {
-    totalPages: 0,
-    freshPercent: 0,
-    criticalCount: 0,
-    reviewCount: 0,
-    healthyCount: 0,
-    aiCitationReadyCount: 0,
-    avgFreshnessScore: 0
+    totalPages: 0, freshPercent: 0, criticalCount: 0, reviewCount: 0,
+    healthyCount: 0, aiCitationReadyCount: 0, avgFreshnessScore: 0,
   };
 
   return (
     <div className="min-h-screen pb-20 relative">
-      {/* Background decoration */}
-      <img 
-        src={`${import.meta.env.BASE_URL}images/bg-glow.png`} 
-        alt="" 
+      <img
+        src={`${import.meta.env.BASE_URL}images/bg-glow.png`}
+        alt=""
         className="fixed top-0 left-0 w-full h-full object-cover opacity-30 pointer-events-none mix-blend-screen"
         aria-hidden="true"
       />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-12 relative z-10">
+
         {/* Header */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-col"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-4 w-max">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Live Tracking Active
             </div>
             <h1 className="text-4xl md:text-5xl font-display font-extrabold tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-500">
@@ -63,19 +73,48 @@ export default function Dashboard() {
             </p>
           </motion.div>
 
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            onClick={() => setIsUploadModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            className="flex items-center gap-2 flex-wrap"
           >
-            <Plus size={18} />
-            Import Data
-          </motion.button>
+            {/* Connection status + quick sync */}
+            <button
+              onClick={() => setIsConnectModalOpen(true)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all",
+                isConnected
+                  ? "bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/15"
+                  : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+              )}
+            >
+              {isConnected ? <Wifi size={15} /> : <WifiOff size={15} />}
+              {isConnected ? "Connected" : "Connect Site"}
+            </button>
+
+            {isConnected && (
+              <button
+                onClick={handleQuickSync}
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-all disabled:opacity-50"
+              >
+                <RefreshCw size={15} className={cn(isSyncing && "animate-spin")} />
+                {isSyncing ? "Syncing..." : "Sync Now"}
+              </button>
+            )}
+
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Plus size={18} />
+              Import CSV
+            </button>
+          </motion.div>
         </header>
 
         {pages.length === 0 ? (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="glass-panel rounded-3xl p-16 flex flex-col items-center justify-center text-center mt-12 border-dashed border-2"
@@ -85,67 +124,43 @@ export default function Dashboard() {
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground mb-3">No content being tracked yet</h2>
             <p className="text-muted-foreground max-w-md mb-8">
-              Upload an export from Google Search Console or your CMS to begin analyzing your content freshness and AI search readiness.
+              Connect your site for automatic live tracking, or upload a CSV export from Google Search Console or your CMS.
             </p>
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="px-8 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:bg-primary/90 transition-all hover:-translate-y-1"
-            >
-              Upload CSV Export
-            </button>
+            <div className="flex gap-3 flex-wrap justify-center">
+              <button
+                onClick={() => setIsConnectModalOpen(true)}
+                className="px-8 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:bg-primary/90 transition-all hover:-translate-y-1"
+              >
+                Connect My Site
+              </button>
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-8 py-3 rounded-xl font-semibold bg-white/10 text-foreground hover:bg-white/15 transition-all hover:-translate-y-1 border border-white/10"
+              >
+                Upload CSV
+              </button>
+            </div>
           </motion.div>
         ) : (
           <>
             <FreshnessLoop percentage={safeStats.freshPercent} />
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-              <StatCard 
-                title="Total Pages Tracked" 
-                value={safeStats.totalPages.toLocaleString()} 
-                icon={Layers} 
-                delay={0.1}
-                colorClassName="bg-blue-500"
-              />
-              <StatCard 
-                title="Critical Refresh" 
-                value={safeStats.criticalCount.toLocaleString()} 
-                icon={FileWarning} 
-                delay={0.2}
-                colorClassName="bg-destructive"
-              />
-              <StatCard 
-                title="Healthy Pages" 
-                value={safeStats.healthyCount.toLocaleString()} 
-                icon={CheckCircle} 
-                delay={0.3}
-                colorClassName="bg-success"
-              />
-              <StatCard 
-                title="AI Citation Ready" 
-                value={safeStats.aiCitationReadyCount.toLocaleString()} 
-                icon={Sparkles} 
-                delay={0.4}
-                colorClassName="bg-indigo-500"
-              />
+              <StatCard title="Total Pages Tracked" value={safeStats.totalPages.toLocaleString()} icon={Layers} delay={0.1} colorClassName="bg-blue-500" />
+              <StatCard title="Critical Refresh" value={safeStats.criticalCount.toLocaleString()} icon={FileWarning} delay={0.2} colorClassName="bg-destructive" />
+              <StatCard title="Healthy Pages" value={safeStats.healthyCount.toLocaleString()} icon={CheckCircle} delay={0.3} colorClassName="bg-success" />
+              <StatCard title="AI Citation Ready" value={safeStats.aiCitationReadyCount.toLocaleString()} icon={Sparkles} delay={0.4} colorClassName="bg-indigo-500" />
             </div>
 
-            {/* Main Table Area */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
               <DataTable pages={pages} />
             </motion.div>
           </>
         )}
       </div>
 
-      <CsvUploadModal 
-        isOpen={isUploadModalOpen} 
-        onClose={() => setIsUploadModalOpen(false)} 
-      />
+      <CsvUploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
+      <ConnectModal isOpen={isConnectModalOpen} onClose={() => setIsConnectModalOpen(false)} />
     </div>
   );
 }

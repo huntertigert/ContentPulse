@@ -11,13 +11,16 @@ tags:
     description: Health operations
   - name: pages
     description: Page freshness operations
+  - name: settings
+    description: Dashboard settings
+  - name: sync
+    description: Data sync operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -100,6 +103,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardStats"
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get dashboard settings
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    post:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update dashboard settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsInput"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+  /sync/sitemap:
+    post:
+      operationId: syncSitemap
+      tags: [sync]
+      summary: Crawl sitemap and sync pages
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+  /sync/gsc:
+    post:
+      operationId: syncGsc
+      tags: [sync]
+      summary: Pull data from Google Search Console API
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+  /sync/status:
+    get:
+      operationId: getSyncStatus
+      tags: [sync]
+      summary: Get sync status
+      responses:
+        "200":
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncStatus"
 components:
   schemas:
     HealthStatus:
@@ -107,8 +175,7 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
     PageFreshness:
       type: object
       properties:
@@ -131,16 +198,13 @@ components:
           type: string
         freshnessScore:
           type: number
-          description: 0-100 score indicating content freshness
         decayScore:
           type: number
-          description: 0-100 score indicating content decay (higher = more decayed)
         triageStatus:
           type: string
           enum: [critical, review, healthy]
         aiCitationLikely:
           type: boolean
-          description: Whether the page is likely to be cited by AI search
         aiCitationReason:
           type: string
         daysSinceUpdate:
@@ -183,20 +247,13 @@ components:
           type: integer
         excerpt:
           type: string
-      required:
-        - url
-        - lastUpdated
-        - clicks30d
-        - clicksPrev30d
-        - wordCount
+      required: [url, lastUpdated, clicks30d, clicksPrev30d, wordCount]
     CsvUploadInput:
       type: object
       properties:
         csvData:
           type: string
-          description: CSV content as a string
-      required:
-        - csvData
+      required: [csvData]
     CsvUploadResult:
       type: object
       properties:
@@ -208,10 +265,7 @@ components:
           type: array
           items:
             type: string
-      required:
-        - imported
-        - skipped
-        - errors
+      required: [imported, skipped, errors]
     DashboardStats:
       type: object
       properties:
@@ -219,7 +273,6 @@ components:
           type: integer
         freshPercent:
           type: number
-          description: Percentage of pages under 90 days old
         criticalCount:
           type: integer
         reviewCount:
@@ -238,3 +291,66 @@ components:
         - healthyCount
         - avgFreshnessScore
         - aiCitationReadyCount
+    Settings:
+      type: object
+      properties:
+        sitemapUrl:
+          type: string
+        gscSiteUrl:
+          type: string
+        gscHasCredentials:
+          type: boolean
+          description: True if a service account JSON has been saved (does not expose the key itself)
+        lastSitemapSync:
+          type: string
+          format: date-time
+        lastGscSync:
+          type: string
+          format: date-time
+        autoSyncEnabled:
+          type: boolean
+      required:
+        - gscHasCredentials
+        - autoSyncEnabled
+    UpdateSettingsInput:
+      type: object
+      properties:
+        sitemapUrl:
+          type: string
+        gscSiteUrl:
+          type: string
+        gscServiceAccountJson:
+          type: string
+          description: Full JSON string of the Google service account key file
+        autoSyncEnabled:
+          type: boolean
+    SyncResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        upserted:
+          type: integer
+        updated:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required: [success, message, upserted, updated, errors]
+    SyncStatus:
+      type: object
+      properties:
+        lastSitemapSync:
+          type: string
+          format: date-time
+        lastGscSync:
+          type: string
+          format: date-time
+        sitemapConfigured:
+          type: boolean
+        gscConfigured:
+          type: boolean
+      required: [sitemapConfigured, gscConfigured]

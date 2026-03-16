@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CsvUploadInput {
-  csvData: string;
+export interface SyncResult {
+  success: boolean;
+  message: string;
+  upserted: number;
+  updated: number;
+  errors: string[];
 }

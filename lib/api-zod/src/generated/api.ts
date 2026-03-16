@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -27,16 +26,10 @@ export const GetPagesResponseItem = zod.object({
   clicksPrev30d: zod.number(),
   wordCount: zod.number(),
   excerpt: zod.string().optional(),
-  freshnessScore: zod
-    .number()
-    .describe("0-100 score indicating content freshness"),
-  decayScore: zod
-    .number()
-    .describe("0-100 score indicating content decay (higher = more decayed)"),
+  freshnessScore: zod.number(),
+  decayScore: zod.number(),
   triageStatus: zod.enum(["critical", "review", "healthy"]),
-  aiCitationLikely: zod
-    .boolean()
-    .describe("Whether the page is likely to be cited by AI search"),
+  aiCitationLikely: zod.boolean(),
   aiCitationReason: zod.string().optional(),
   daysSinceUpdate: zod.number(),
   trafficTrend: zod.enum(["up", "down", "stable"]),
@@ -61,7 +54,7 @@ export const CreatePageBody = zod.object({
  * @summary Upload CSV to bulk import pages
  */
 export const UploadCsvBody = zod.object({
-  csvData: zod.string().describe("CSV content as a string"),
+  csvData: zod.string(),
 });
 
 export const UploadCsvResponse = zod.object({
@@ -82,10 +75,84 @@ export const DeletePageParams = zod.object({
  */
 export const GetStatsResponse = zod.object({
   totalPages: zod.number(),
-  freshPercent: zod.number().describe("Percentage of pages under 90 days old"),
+  freshPercent: zod.number(),
   criticalCount: zod.number(),
   reviewCount: zod.number(),
   healthyCount: zod.number(),
   avgFreshnessScore: zod.number(),
   aiCitationReadyCount: zod.number(),
+});
+
+/**
+ * @summary Get dashboard settings
+ */
+export const GetSettingsResponse = zod.object({
+  sitemapUrl: zod.string().optional(),
+  gscSiteUrl: zod.string().optional(),
+  gscHasCredentials: zod
+    .boolean()
+    .describe(
+      "True if a service account JSON has been saved (does not expose the key itself)",
+    ),
+  lastSitemapSync: zod.date().optional(),
+  lastGscSync: zod.date().optional(),
+  autoSyncEnabled: zod.boolean(),
+});
+
+/**
+ * @summary Update dashboard settings
+ */
+export const UpdateSettingsBody = zod.object({
+  sitemapUrl: zod.string().optional(),
+  gscSiteUrl: zod.string().optional(),
+  gscServiceAccountJson: zod
+    .string()
+    .optional()
+    .describe("Full JSON string of the Google service account key file"),
+  autoSyncEnabled: zod.boolean().optional(),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  sitemapUrl: zod.string().optional(),
+  gscSiteUrl: zod.string().optional(),
+  gscHasCredentials: zod
+    .boolean()
+    .describe(
+      "True if a service account JSON has been saved (does not expose the key itself)",
+    ),
+  lastSitemapSync: zod.date().optional(),
+  lastGscSync: zod.date().optional(),
+  autoSyncEnabled: zod.boolean(),
+});
+
+/**
+ * @summary Crawl sitemap and sync pages
+ */
+export const SyncSitemapResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+  upserted: zod.number(),
+  updated: zod.number(),
+  errors: zod.array(zod.string()),
+});
+
+/**
+ * @summary Pull data from Google Search Console API
+ */
+export const SyncGscResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+  upserted: zod.number(),
+  updated: zod.number(),
+  errors: zod.array(zod.string()),
+});
+
+/**
+ * @summary Get sync status
+ */
+export const GetSyncStatusResponse = zod.object({
+  lastSitemapSync: zod.date().optional(),
+  lastGscSync: zod.date().optional(),
+  sitemapConfigured: zod.boolean(),
+  gscConfigured: zod.boolean(),
 });

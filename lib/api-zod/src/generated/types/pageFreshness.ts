@@ -17,12 +17,9 @@ export interface PageFreshness {
   clicksPrev30d: number;
   wordCount: number;
   excerpt?: string;
-  /** 0-100 score indicating content freshness */
   freshnessScore: number;
-  /** 0-100 score indicating content decay (higher = more decayed) */
   decayScore: number;
   triageStatus: PageFreshnessTriageStatus;
-  /** Whether the page is likely to be cited by AI search */
   aiCitationLikely: boolean;
   aiCitationReason?: string;
   daysSinceUpdate: number;

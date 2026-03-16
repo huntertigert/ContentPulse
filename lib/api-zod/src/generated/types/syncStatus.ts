@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CsvUploadInput {
-  csvData: string;
+export interface SyncStatus {
+  lastSitemapSync?: Date;
+  lastGscSync?: Date;
+  sitemapConfigured: boolean;
+  gscConfigured: boolean;
 }

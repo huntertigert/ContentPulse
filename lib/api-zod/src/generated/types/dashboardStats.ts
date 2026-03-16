@@ -8,7 +8,6 @@
 
 export interface DashboardStats {
   totalPages: number;
-  /** Percentage of pages under 90 days old */
   freshPercent: number;
   criticalCount: number;
   reviewCount: number;

@@ -4,6 +4,13 @@
 
 pnpm workspace monorepo using TypeScript. Content Freshness Dashboard for SEO and AI Search (GEO) tracking.
 
+## Live Sync Features
+
+- **Sitemap Sync**: Enter a sitemap URL (including sitemap index files); the backend fetches, parses, and upserts all pages with `lastmod` dates.
+- **GSC Integration**: User pastes a Google Service Account JSON key + site URL. Backend calls the Search Console API to pull 30-day and previous 30-day click data per page.
+- **Settings**: Key-value `settings` table in Postgres. Settings include `sitemapUrl`, `gscSiteUrl`, `gscServiceAccountJson`, `lastSitemapSync`, `lastGscSync`, `autoSyncEnabled`.
+- **Connect & Sync modal**: Header button opens a modal with form inputs, step-by-step GSC instructions, "Sync Now" buttons, and status badges showing last sync time.
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
