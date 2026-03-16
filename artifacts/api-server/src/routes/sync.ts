@@ -297,9 +297,15 @@ router.post("/gsc", async (_req, res) => {
   } catch (err: any) {
     console.error("GSC sync error:", err);
     const msg = err?.message || String(err);
-    const friendly = msg.includes("invalid_grant") || msg.includes("unauthorized")
-      ? "Authentication failed. Make sure your service account JSON is correct and has access to this GSC property."
-      : `GSC sync failed: ${msg}`;
+    const code = err?.code || err?.status;
+    let friendly: string;
+    if (msg.includes("sufficient permission") || code === 403) {
+      friendly = "Permission denied (403). You need to add your service account email as a user in Google Search Console → Settings → Users and permissions → Add user → Full. Then try again.";
+    } else if (msg.includes("invalid_grant") || msg.includes("unauthorized") || code === 401) {
+      friendly = "Authentication failed. Make sure the service account JSON key is correct and the Search Console API is enabled in your Google Cloud project.";
+    } else {
+      friendly = `GSC sync failed: ${msg}`;
+    }
     res.status(500).json({
       success: false,
       message: friendly,
