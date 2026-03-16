@@ -129,7 +129,6 @@ router.get("/status", async (_req, res) => {
 router.post("/sitemap", async (_req, res) => {
   const errors: string[] = [];
   let upserted = 0;
-  let updated = 0;
 
   try {
     const sitemapUrl = await getSetting("sitemapUrl");
@@ -156,40 +155,32 @@ router.post("/sitemap", async (_req, res) => {
       return;
     }
 
+    // Build valid rows first so we only wipe existing data if the sitemap parsed cleanly
+    const rows: Array<{ url: string; lastUpdated: Date }> = [];
     for (const entry of entries) {
+      const lastUpdated = entry.lastmod ? new Date(entry.lastmod) : new Date();
+      if (isNaN(lastUpdated.getTime())) {
+        errors.push(`Skipped ${entry.url}: invalid date "${entry.lastmod}"`);
+        continue;
+      }
+      rows.push({ url: entry.url, lastUpdated });
+    }
+
+    // Replace all existing pages with the sitemap data so example/seed rows are cleared
+    await db.delete(pagesTable);
+
+    for (const row of rows) {
       try {
-        const lastUpdated = entry.lastmod ? new Date(entry.lastmod) : new Date();
-        if (isNaN(lastUpdated.getTime())) {
-          errors.push(`Skipped ${entry.url}: invalid date "${entry.lastmod}"`);
-          continue;
-        }
-
-        // Check if page exists
-        const existing = await db
-          .select()
-          .from(pagesTable)
-          .where(eq(pagesTable.url, entry.url))
-          .limit(1);
-
-        if (existing.length > 0) {
-          // Update lastUpdated only (preserve click data)
-          await db
-            .update(pagesTable)
-            .set({ lastUpdated })
-            .where(eq(pagesTable.url, entry.url));
-          updated++;
-        } else {
-          await db.insert(pagesTable).values({
-            url: entry.url,
-            lastUpdated,
-            clicks30d: 0,
-            clicksPrev30d: 0,
-            wordCount: 0,
-          });
-          upserted++;
-        }
+        await db.insert(pagesTable).values({
+          url: row.url,
+          lastUpdated: row.lastUpdated,
+          clicks30d: 0,
+          clicksPrev30d: 0,
+          wordCount: 0,
+        });
+        upserted++;
       } catch (rowErr) {
-        errors.push(`Error processing ${entry.url}: ${String(rowErr)}`);
+        errors.push(`Error inserting ${row.url}: ${String(rowErr)}`);
       }
     }
 
@@ -197,9 +188,9 @@ router.post("/sitemap", async (_req, res) => {
 
     res.json({
       success: true,
-      message: `Sitemap sync complete. Found ${entries.length} URLs — ${upserted} new pages added, ${updated} existing pages updated.`,
+      message: `Sitemap sync complete — ${upserted} pages imported from your sitemap.`,
       upserted,
-      updated,
+      updated: 0,
       errors: errors.slice(0, 10),
     });
   } catch (err) {
@@ -208,7 +199,7 @@ router.post("/sitemap", async (_req, res) => {
       success: false,
       message: `Sitemap sync failed: ${String(err)}`,
       upserted,
-      updated,
+      updated: 0,
       errors: [String(err)],
     });
   }
