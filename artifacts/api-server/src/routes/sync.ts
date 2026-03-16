@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
-import { db, pagesTable, settingsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { db, pagesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { google } from "googleapis";
+import { openai } from "@workspace/integrations-openai-ai-server";
+import { batchProcess } from "@workspace/integrations-openai-ai-server/batch";
 import { getAllSettings, getSetting, setSetting } from "./settings.js";
 
 const router: IRouter = Router();
@@ -46,10 +48,10 @@ async function parseSitemap(url: string, depth = 0): Promise<SitemapEntry[]> {
   const xml = await fetchText(url);
   const entries: SitemapEntry[] = [];
 
-  // Check if it's a sitemap index
-  const sitemapLocs = extractTags(xml, "sitemap").map((s) => extractTag(s, "loc")).filter(Boolean) as string[];
+  const sitemapLocs = extractTags(xml, "sitemap")
+    .map((s) => extractTag(s, "loc"))
+    .filter(Boolean) as string[];
   if (sitemapLocs.length > 0) {
-    // Sitemap index — recurse
     for (const loc of sitemapLocs.slice(0, 20)) {
       const sub = await parseSitemap(loc, depth + 1);
       entries.push(...sub);
@@ -57,17 +59,107 @@ async function parseSitemap(url: string, depth = 0): Promise<SitemapEntry[]> {
     return entries;
   }
 
-  // Regular sitemap
   const urlBlocks = extractTags(xml, "url");
   for (const block of urlBlocks) {
     const loc = extractTag(block, "loc");
     const lastmod = extractTag(block, "lastmod");
-    if (loc) {
-      entries.push({ url: loc, lastmod });
-    }
+    if (loc) entries.push({ url: loc, lastmod });
   }
-
   return entries;
+}
+
+// ─── HTML scraping helpers ────────────────────────────────────────────────────
+
+interface PageMeta {
+  title: string | null;
+  excerpt: string | null;
+  wordCount: number;
+}
+
+async function scrapePageMeta(url: string): Promise<PageMeta> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "ContentFreshnessDashboard/1.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { title: null, excerpt: null, wordCount: 0 };
+    const html = await res.text();
+
+    // Extract <title>
+    const titleMatch = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
+    let title = titleMatch ? titleMatch[1].trim() : null;
+    // Strip site suffix like " | Company Name"
+    if (title) title = title.split(/\s*[|\-–—]\s*/)[0].trim() || title;
+
+    // Strip scripts, styles, nav, header, footer, aside to get main body text
+    const bodyText = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<(nav|header|footer|aside|noscript)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
+    // Take first ~400 chars of body as excerpt
+    const excerpt = bodyText.length > 50 ? bodyText.slice(0, 400) : null;
+
+    return { title, excerpt, wordCount };
+  } catch {
+    return { title: null, excerpt: null, wordCount: 0 };
+  }
+}
+
+// ─── AI Citation scoring ──────────────────────────────────────────────────────
+
+interface CitationResult {
+  score: number;
+  reason: string;
+}
+
+async function scoreAiCitation(
+  url: string,
+  title: string | null,
+  wordCount: number,
+  excerpt: string | null,
+): Promise<CitationResult> {
+  const prompt = `You are an SEO expert. Analyze whether an AI assistant (like ChatGPT, Claude, or Gemini) would likely cite this page in its responses.
+
+URL: ${url}
+Title: ${title || "(unknown)"}
+Word count: ${wordCount}
+Excerpt: ${excerpt ? excerpt.slice(0, 300) : "(not available)"}
+
+Score the AI citation likelihood 0-100:
+- 80-100: Highly likely (authoritative, factual, comprehensive, clear direct-answer format, definitions, stats, how-tos)
+- 50-79: Moderately likely (useful content but lacks depth, specificity, or structured answer format)
+- 0-49: Unlikely (thin content, promotional, vague, or no clear factual value)
+
+Reply with JSON only — no markdown, no commentary:
+{"score": <integer 0-100>, "reason": "<one concise sentence explaining the key factor>"}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-5-nano",
+    max_completion_tokens: 120,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const raw = response.choices[0]?.message?.content?.trim() ?? "";
+  try {
+    // Strip any accidental markdown fences
+    const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
+    const parsed = JSON.parse(cleaned);
+    return {
+      score: Math.min(100, Math.max(0, Math.round(Number(parsed.score)))),
+      reason: String(parsed.reason).slice(0, 200),
+    };
+  } catch {
+    return { score: 50, reason: "Could not parse AI response" };
+  }
 }
 
 // ─── GSC helpers ─────────────────────────────────────────────────────────────
@@ -159,7 +251,7 @@ router.post("/sitemap", async (_req, res) => {
       return;
     }
 
-    // Build valid rows first so we only wipe existing data if the sitemap parsed cleanly
+    // Build valid rows
     const rows: Array<{ url: string; lastUpdated: Date }> = [];
     for (const entry of entries) {
       const lastUpdated = entry.lastmod ? new Date(entry.lastmod) : new Date();
@@ -170,17 +262,41 @@ router.post("/sitemap", async (_req, res) => {
       rows.push({ url: entry.url, lastUpdated });
     }
 
-    // Replace all existing pages with the sitemap data so example/seed rows are cleared
+    // Step 1: Scrape HTML metadata (title, excerpt, word count) in parallel batches
+    console.log(`Scraping metadata for ${rows.length} pages...`);
+    const metaResults = await batchProcess(
+      rows,
+      (row) => scrapePageMeta(row.url),
+      { concurrency: 8, retries: 1 },
+    );
+
+    // Step 2: Score AI citation likelihood in parallel batches
+    console.log(`Scoring AI citation for ${rows.length} pages...`);
+    const citationResults = await batchProcess(
+      rows.map((row, i) => ({ row, meta: metaResults[i]! })),
+      ({ row, meta }) =>
+        scoreAiCitation(row.url, meta.title, meta.wordCount, meta.excerpt),
+      { concurrency: 5, retries: 3 },
+    );
+
+    // Step 3: Replace all existing pages
     await db.delete(pagesTable);
 
-    for (const row of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!;
+      const meta = metaResults[i] ?? { title: null, excerpt: null, wordCount: 0 };
+      const citation = citationResults[i] ?? { score: 50, reason: "" };
       try {
         await db.insert(pagesTable).values({
           url: row.url,
+          title: meta.title,
           lastUpdated: row.lastUpdated,
           clicks30d: 0,
           clicksPrev30d: 0,
-          wordCount: 0,
+          wordCount: meta.wordCount,
+          excerpt: meta.excerpt,
+          aiCitationScore: citation.score,
+          aiCitationReason: citation.reason,
         });
         upserted++;
       } catch (rowErr) {
@@ -192,7 +308,7 @@ router.post("/sitemap", async (_req, res) => {
 
     res.json({
       success: true,
-      message: `Sitemap sync complete — ${upserted} pages imported from your sitemap.`,
+      message: `Sync complete — ${upserted} pages imported with titles and AI citation scores.`,
       upserted,
       updated: 0,
       errors: errors.slice(0, 10),
@@ -229,7 +345,6 @@ router.post("/gsc", async (_req, res) => {
       return;
     }
 
-    // Fetch last 30 days
     const end = dateStr(0);
     const start30 = dateStr(30);
     const start60 = dateStr(60);
@@ -246,22 +361,25 @@ router.post("/gsc", async (_req, res) => {
         const clicks30d = current30[pageUrl] ?? 0;
         const clicksPrev30d = prev30[pageUrl] ?? 0;
 
-        // Normalize URL — strip the site URL prefix to get path
         let urlPath = pageUrl;
         try {
           const parsed = new URL(pageUrl);
           urlPath = parsed.pathname + (parsed.search || "");
         } catch {}
 
-        // Try to find by full URL or path
         const existingFull = await db
           .select()
           .from(pagesTable)
           .where(eq(pagesTable.url, pageUrl))
           .limit(1);
-        const existingPath = existingFull.length === 0
-          ? await db.select().from(pagesTable).where(eq(pagesTable.url, urlPath)).limit(1)
-          : existingFull;
+        const existingPath =
+          existingFull.length === 0
+            ? await db
+                .select()
+                .from(pagesTable)
+                .where(eq(pagesTable.url, urlPath))
+                .limit(1)
+            : existingFull;
 
         if (existingPath.length > 0) {
           await db
@@ -270,7 +388,6 @@ router.post("/gsc", async (_req, res) => {
             .where(eq(pagesTable.id, existingPath[0].id));
           updated++;
         } else {
-          // Insert new page discovered from GSC
           await db.insert(pagesTable).values({
             url: urlPath,
             lastUpdated: new Date(),
@@ -300,9 +417,11 @@ router.post("/gsc", async (_req, res) => {
     const code = err?.code || err?.status;
     let friendly: string;
     if (msg.includes("sufficient permission") || code === 403) {
-      friendly = "Permission denied (403). You need to add your service account email as a user in Google Search Console → Settings → Users and permissions → Add user → Full. Then try again.";
+      friendly =
+        "Permission denied (403). You need to add your service account email as a user in Google Search Console → Settings → Users and permissions → Add user → Full. Then try again.";
     } else if (msg.includes("invalid_grant") || msg.includes("unauthorized") || code === 401) {
-      friendly = "Authentication failed. Make sure the service account JSON key is correct and the Search Console API is enabled in your Google Cloud project.";
+      friendly =
+        "Authentication failed. Make sure the service account JSON key is correct and the Search Console API is enabled in your Google Cloud project.";
     } else {
       friendly = `GSC sync failed: ${msg}`;
     }

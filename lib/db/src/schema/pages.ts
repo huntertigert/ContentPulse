@@ -11,6 +11,8 @@ export const pagesTable = pgTable("pages", {
   clicksPrev30d: integer("clicks_prev_30d").notNull().default(0),
   wordCount: integer("word_count").notNull().default(0),
   excerpt: text("excerpt"),
+  aiCitationScore: integer("ai_citation_score"),
+  aiCitationReason: text("ai_citation_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

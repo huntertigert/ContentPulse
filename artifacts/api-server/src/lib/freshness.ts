@@ -39,7 +39,6 @@ export function calculateFreshness(page: Page): PageFreshnessData {
   }
 
   // Freshness score (0-100): higher = fresher
-  // Based on days since update — decreases over time
   let freshnessScore: number;
   if (daysSinceUpdate <= 30) {
     freshnessScore = 90 + Math.min(10, (30 - daysSinceUpdate) / 3);
@@ -55,25 +54,19 @@ export function calculateFreshness(page: Page): PageFreshnessData {
     freshnessScore = Math.max(0, 10 - (daysSinceUpdate - 365) / 30);
   }
 
-  // Boost for high traffic
   if (page.clicks30d > 1000) freshnessScore = Math.min(100, freshnessScore + 5);
   if (trafficTrend === "up") freshnessScore = Math.min(100, freshnessScore + 3);
 
   freshnessScore = Math.round(freshnessScore);
 
-  // Decay score (0-100): higher = more decayed (needs refresh)
-  // Pages >90 days old with declining traffic get high decay score
+  // Decay score (0-100): higher = more decayed
   let decayScore = 100 - freshnessScore;
-
-  // Extra decay if traffic is declining AND page is old
   if (daysSinceUpdate > 90 && trafficTrend === "down") {
     decayScore = Math.min(100, decayScore + 15);
   }
-  // Extra decay for very old pages
   if (daysSinceUpdate > 365) {
     decayScore = Math.min(100, decayScore + 10);
   }
-
   decayScore = Math.round(decayScore);
 
   // Triage status
@@ -85,30 +78,36 @@ export function calculateFreshness(page: Page): PageFreshnessData {
   } else {
     triageStatus = "healthy";
   }
-
-  // Override: very high decay = critical
   if (decayScore >= 75) triageStatus = "critical";
-  // Healthy override: fresh and good traffic
   if (daysSinceUpdate <= 30 && trafficTrend !== "down") triageStatus = "healthy";
 
-  // AI Citation prediction
-  // Based on: word count >=300 (has substantial content), excerpt contains question-like format
-  const hasSubstantialContent = page.wordCount >= 300;
-  const hasShortAnswer =
-    page.excerpt != null &&
-    page.excerpt.length >= 100 &&
-    (page.excerpt.includes("?") ||
-      page.excerpt.split(".").length >= 2 ||
-      page.wordCount >= 500);
+  // ── AI Citation prediction ──────────────────────────────────────────────────
+  // Use the AI-scored value stored in DB when available (set during sitemap sync).
+  // Fall back to a heuristic when not yet scored.
+  let aiCitationLikely: boolean;
+  let aiCitationReason: string;
 
-  const aiCitationLikely = hasSubstantialContent && (hasShortAnswer || page.wordCount >= 800);
-  let aiCitationReason = "";
-  if (aiCitationLikely) {
-    aiCitationReason = "Has 100+ word concise answer format";
-  } else if (!hasSubstantialContent) {
-    aiCitationReason = "Content too short (<300 words)";
+  if (page.aiCitationScore !== null && page.aiCitationScore !== undefined) {
+    // AI-scored: 65+ = likely (threshold gives ~top third of pages)
+    aiCitationLikely = page.aiCitationScore >= 65;
+    aiCitationReason = page.aiCitationReason ?? `AI score: ${page.aiCitationScore}/100`;
   } else {
-    aiCitationReason = "Lacks clear Q&A answer structure";
+    // Heuristic fallback for pages not yet AI-scored
+    const hasSubstantialContent = page.wordCount >= 300;
+    const hasShortAnswer =
+      page.excerpt != null &&
+      page.excerpt.length >= 100 &&
+      (page.excerpt.includes("?") ||
+        page.excerpt.split(".").length >= 2 ||
+        page.wordCount >= 500);
+    aiCitationLikely = hasSubstantialContent && (hasShortAnswer || page.wordCount >= 800);
+    if (aiCitationLikely) {
+      aiCitationReason = "Estimated: has substantial, structured content";
+    } else if (!hasSubstantialContent) {
+      aiCitationReason = "Estimated: content too short (<300 words)";
+    } else {
+      aiCitationReason = "Estimated: lacks clear Q&A answer structure";
+    }
   }
 
   return {
