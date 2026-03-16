@@ -119,18 +119,53 @@ router.post("/upload-csv", async (req, res) => {
       return;
     }
 
-    // Parse header to find column indices
-    const header = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/['"]/g, ""));
-    const urlIdx = header.findIndex((h) => h === "url");
-    const titleIdx = header.findIndex((h) => h === "title");
-    const lastUpdatedIdx = header.findIndex((h) => ["lastupdated", "last_updated", "date"].includes(h));
-    const clicks30dIdx = header.findIndex((h) => ["clicks30d", "clicks_30d", "clicks"].includes(h));
-    const clicksPrev30dIdx = header.findIndex((h) => ["clicksprev30d", "clicks_prev_30d", "prev_clicks", "prevclicks"].includes(h));
-    const wordCountIdx = header.findIndex((h) => ["wordcount", "word_count", "words"].includes(h));
-    const excerptIdx = header.findIndex((h) => ["excerpt", "description", "snippet"].includes(h));
+    // Parse header — flexible column matching for WordPress, GSC, and custom exports
+    const rawHeader = parseCsvLine(lines[0]);
+    const header = rawHeader.map((h) =>
+      h.trim().toLowerCase().replace(/['"]/g, "").replace(/\s+/g, " "),
+    );
 
-    if (urlIdx === -1 || lastUpdatedIdx === -1) {
-      res.json({ imported: 0, skipped: 0, errors: ["CSV must contain 'url' and 'lastUpdated' columns"] });
+    const findCol = (variants: string[]) =>
+      header.findIndex((h) => variants.includes(h));
+
+    const urlIdx = findCol([
+      "url", "page", "address", "link", "permalink", "landing page",
+      "top pages", "page url", "post url", "slug",
+    ]);
+    const titleIdx = findCol([
+      "title", "post title", "post_title", "name", "page title", "page name",
+    ]);
+    const lastUpdatedIdx = findCol([
+      "lastupdated", "last_updated", "last updated", "modified", "date modified",
+      "date_modified", "post modified", "post_modified", "post modified date",
+      "modified date", "last modified", "updated", "updated_at", "modified_at",
+      "post date", "post_date", "date", "published", "published_at", "published date",
+    ]);
+    const clicks30dIdx = findCol([
+      "clicks30d", "clicks_30d", "clicks", "pageviews", "page views",
+      "sessions", "visits", "traffic",
+    ]);
+    const clicksPrev30dIdx = findCol([
+      "clicksprev30d", "clicks_prev_30d", "prev_clicks", "prevclicks",
+      "previous clicks", "last period clicks", "prior clicks",
+    ]);
+    const wordCountIdx = findCol([
+      "wordcount", "word_count", "word count", "words",
+    ]);
+    const excerptIdx = findCol([
+      "excerpt", "description", "snippet", "content", "meta description",
+      "post excerpt",
+    ]);
+
+    if (urlIdx === -1) {
+      res.json({
+        imported: 0,
+        skipped: 0,
+        errors: [
+          `Could not find a URL column. Found columns: ${header.join(", ")}. ` +
+          `Expected one of: url, page, address, link, permalink.`,
+        ],
+      });
       return;
     }
 
@@ -147,19 +182,28 @@ router.post("/upload-csv", async (req, res) => {
 
       try {
         const url = cols[urlIdx]?.trim();
-        const lastUpdatedStr = cols[lastUpdatedIdx]?.trim();
 
-        if (!url || !lastUpdatedStr) {
-          errors.push(`Row ${i}: missing url or lastUpdated`);
+        if (!url) {
+          errors.push(`Row ${i}: missing URL`);
           skipped++;
           continue;
         }
 
-        const lastUpdated = new Date(lastUpdatedStr);
-        if (isNaN(lastUpdated.getTime())) {
-          errors.push(`Row ${i}: invalid date "${lastUpdatedStr}"`);
-          skipped++;
-          continue;
+        // lastUpdated is optional — fall back to today if column not found or blank
+        const lastUpdatedRaw = lastUpdatedIdx !== -1 ? cols[lastUpdatedIdx]?.trim() : "";
+        let lastUpdated: Date;
+        if (lastUpdatedRaw) {
+          lastUpdated = new Date(lastUpdatedRaw);
+          if (isNaN(lastUpdated.getTime())) {
+            // Try common WP format: "2024-06-01 14:30:00"
+            lastUpdated = new Date(lastUpdatedRaw.replace(" ", "T"));
+          }
+          if (isNaN(lastUpdated.getTime())) {
+            errors.push(`Row ${i}: could not parse date "${lastUpdatedRaw}", using today`);
+            lastUpdated = new Date();
+          }
+        } else {
+          lastUpdated = new Date();
         }
 
         const clicks30d = clicks30dIdx !== -1 ? parseInt(cols[clicks30dIdx] ?? "0") || 0 : 0;
