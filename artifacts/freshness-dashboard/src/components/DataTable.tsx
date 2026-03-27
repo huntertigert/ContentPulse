@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowUpRight, 
@@ -314,7 +314,7 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                       </td>
                       <td className="p-4">
                         <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(page.lastUpdated), { addSuffix: true })}
+                          {format(new Date(page.lastUpdated), 'MMM d, yyyy')}
                         </span>
                       </td>
                       <td className="p-4">
