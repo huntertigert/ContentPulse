@@ -127,37 +127,48 @@ async function scoreAiCitation(
   wordCount: number,
   excerpt: string | null,
 ): Promise<CitationResult> {
-  const prompt = `You are an SEO expert. Analyze whether an AI assistant (like ChatGPT, Claude, or Gemini) would likely cite this page in its responses.
+  const response = await openai.chat.completions.create({
+    model: "gpt-5-mini",
+    max_completion_tokens: 200,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `You are an SEO expert who analyzes whether AI assistants (ChatGPT, Claude, Gemini) would cite a web page. You always respond with valid JSON containing exactly two fields: "score" (integer 0-100) and "reason" (one concise sentence).
 
+Scoring guide:
+- 80-100: Highly likely (authoritative, factual, comprehensive, direct-answer format, definitions, stats, how-tos, research-backed)
+- 50-79: Moderately likely (useful content but may lack depth, specificity, or clear answer structure)
+- 0-49: Unlikely (thin content, overly promotional, vague, or no clear factual value for answering questions)`,
+      },
+      {
+        role: "user",
+        content: `Analyze this page:
 URL: ${url}
 Title: ${title || "(unknown)"}
 Word count: ${wordCount}
-Excerpt: ${excerpt ? excerpt.slice(0, 300) : "(not available)"}
-
-Score the AI citation likelihood 0-100:
-- 80-100: Highly likely (authoritative, factual, comprehensive, clear direct-answer format, definitions, stats, how-tos)
-- 50-79: Moderately likely (useful content but lacks depth, specificity, or structured answer format)
-- 0-49: Unlikely (thin content, promotional, vague, or no clear factual value)
-
-Reply with JSON only — no markdown, no commentary:
-{"score": <integer 0-100>, "reason": "<one concise sentence explaining the key factor>"}`;
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-5-nano",
-    max_completion_tokens: 120,
-    messages: [{ role: "user", content: prompt }],
+Excerpt: ${excerpt ? excerpt.slice(0, 300) : "(not available)"}`,
+      },
+    ],
   });
 
   const raw = response.choices[0]?.message?.content?.trim() ?? "";
   try {
-    // Strip any accidental markdown fences
-    const cleaned = raw.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-    const parsed = JSON.parse(cleaned);
+    const parsed = JSON.parse(raw);
     return {
       score: Math.min(100, Math.max(0, Math.round(Number(parsed.score)))),
-      reason: String(parsed.reason).slice(0, 200),
+      reason: String(parsed.reason || "").slice(0, 200),
     };
   } catch {
+    // Fallback: try to extract JSON from anywhere in the response
+    const jsonMatch = raw.match(/\{[\s\S]*?"score"\s*:\s*(\d+)[\s\S]*?"reason"\s*:\s*"([^"]*)"[\s\S]*?\}/);
+    if (jsonMatch) {
+      return {
+        score: Math.min(100, Math.max(0, parseInt(jsonMatch[1], 10))),
+        reason: jsonMatch[2].slice(0, 200),
+      };
+    }
+    console.warn("AI citation parse fail:", raw.slice(0, 200));
     return { score: 50, reason: "Could not parse AI response" };
   }
 }
