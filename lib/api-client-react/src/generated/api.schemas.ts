@@ -108,3 +108,19 @@ export interface SyncStatus {
   sitemapConfigured: boolean;
   gscConfigured: boolean;
 }
+
+export type RescoreAiBodyDateFilter =
+  (typeof RescoreAiBodyDateFilter)[keyof typeof RescoreAiBodyDateFilter];
+
+export const RescoreAiBodyDateFilter = {
+  "1m": "1m",
+  "3m": "3m",
+  "6m": "6m",
+  "1y": "1y",
+  "15y": "1.5y",
+  "2y": "2y",
+} as const;
+
+export type RescoreAiBody = {
+  dateFilter?: RescoreAiBodyDateFilter;
+};

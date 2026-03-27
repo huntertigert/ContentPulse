@@ -160,7 +160,16 @@ paths:
     post:
       operationId: rescoreAi
       tags: [sync]
-      summary: Re-score AI citation likelihood for all pages
+      summary: Re-score AI citation likelihood for pages
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dateFilter:
+                  type: string
+                  enum: ["1m", "3m", "6m", "1y", "1.5y", "2y"]
       responses:
         "200":
           description: Rescore result

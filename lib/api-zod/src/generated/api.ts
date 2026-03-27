@@ -148,8 +148,12 @@ export const SyncGscResponse = zod.object({
 });
 
 /**
- * @summary Re-score AI citation likelihood for all pages
+ * @summary Re-score AI citation likelihood for pages
  */
+export const RescoreAiBody = zod.object({
+  dateFilter: zod.enum(["1m", "3m", "6m", "1y", "1.5y", "2y"]).optional(),
+});
+
 export const RescoreAiResponse = zod.object({
   success: zod.boolean(),
   message: zod.string(),

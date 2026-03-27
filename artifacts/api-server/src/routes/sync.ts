@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, pagesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, gte } from "drizzle-orm";
 import { google } from "googleapis";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { batchProcess } from "@workspace/integrations-openai-ai-server/batch";
@@ -460,24 +460,32 @@ router.post("/gsc", async (_req, res) => {
   }
 });
 
-// POST /sync/rescore-ai — re-score AI citation for all pages that need it
-router.post("/rescore-ai", async (_req, res) => {
+// POST /sync/rescore-ai — re-score AI citation, optionally filtered by timeline
+router.post("/rescore-ai", async (req, res) => {
   let updated = 0;
   const errors: string[] = [];
 
   try {
-    // Get all pages (prioritise unscored, then old broken scores)
-    const allPages = await db
-      .select()
-      .from(pagesTable)
-      .orderBy(pagesTable.id);
+    const maxAgeDays: Record<string, number> = {
+      "1m": 30, "3m": 90, "6m": 180, "1y": 365, "1.5y": 548, "2y": 730,
+    };
+    const filter = req.body?.dateFilter as string | undefined;
+    const days = filter && maxAgeDays[filter];
+
+    let query = db.select().from(pagesTable);
+    if (days) {
+      const cutoff = new Date(Date.now() - days * 86400000);
+      query = query.where(gte(pagesTable.lastUpdated, cutoff)) as any;
+    }
+    const allPages = await query.orderBy(pagesTable.id);
 
     if (allPages.length === 0) {
-      res.json({ success: true, message: "No pages to score.", upserted: 0, updated: 0, errors: [] });
+      res.json({ success: true, message: "No pages matched the filter.", upserted: 0, updated: 0, errors: [] });
       return;
     }
 
-    console.log(`Re-scoring AI citations for ${allPages.length} pages...`);
+    const label = days ? `${filter} (${allPages.length} pages)` : `all (${allPages.length} pages)`;
+    console.log(`Re-scoring AI citations for ${label}...`);
 
     const results = await batchProcess(
       allPages,

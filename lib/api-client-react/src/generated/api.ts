@@ -23,6 +23,7 @@ import type {
   DashboardStats,
   HealthStatus,
   PageFreshness,
+  RescoreAiBody,
   Settings,
   SyncResult,
   SyncStatus,
@@ -823,16 +824,21 @@ export const useSyncGsc = <
 };
 
 /**
- * @summary Re-score AI citation likelihood for all pages
+ * @summary Re-score AI citation likelihood for pages
  */
 export const getRescoreAiUrl = () => {
   return `/api/sync/rescore-ai`;
 };
 
-export const rescoreAi = async (options?: RequestInit): Promise<SyncResult> => {
+export const rescoreAi = async (
+  rescoreAiBody: RescoreAiBody,
+  options?: RequestInit,
+): Promise<SyncResult> => {
   return customFetch<SyncResult>(getRescoreAiUrl(), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rescoreAiBody),
   });
 };
 
@@ -843,14 +849,14 @@ export const getRescoreAiMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof rescoreAi>>,
     TError,
-    void,
+    { data: BodyType<RescoreAiBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof rescoreAi>>,
   TError,
-  void,
+  { data: BodyType<RescoreAiBody> },
   TContext
 > => {
   const mutationKey = ["rescoreAi"];
@@ -864,9 +870,11 @@ export const getRescoreAiMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof rescoreAi>>,
-    void
-  > = () => {
-    return rescoreAi(requestOptions);
+    { data: BodyType<RescoreAiBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return rescoreAi(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -875,11 +883,11 @@ export const getRescoreAiMutationOptions = <
 export type RescoreAiMutationResult = NonNullable<
   Awaited<ReturnType<typeof rescoreAi>>
 >;
-
+export type RescoreAiMutationBody = BodyType<RescoreAiBody>;
 export type RescoreAiMutationError = ErrorType<unknown>;
 
 /**
- * @summary Re-score AI citation likelihood for all pages
+ * @summary Re-score AI citation likelihood for pages
  */
 export const useRescoreAi = <
   TError = ErrorType<unknown>,
@@ -888,14 +896,14 @@ export const useRescoreAi = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof rescoreAi>>,
     TError,
-    void,
+    { data: BodyType<RescoreAiBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof rescoreAi>>,
   TError,
-  void,
+  { data: BodyType<RescoreAiBody> },
   TContext
 > => {
   return useMutation(getRescoreAiMutationOptions(options));
