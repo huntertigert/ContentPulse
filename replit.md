@@ -51,8 +51,11 @@ artifacts-monorepo/
 - **Data Table**: Page URL, Traffic (30d), Last Updated, Freshness Score, Decay Score, Triage Status, AI Citation
 - **Triage Tabs**: All / Critical Refresh / Needs Review / Healthy
 - **CSV Upload**: Import pages from CSV (url, title, lastUpdated, clicks30d, clicksPrev30d, wordCount, excerpt)
-- **AI Citation Prediction**: Flags pages likely to be cited by AI (based on 300+ word count + excerpt format)
+- **AI Citation Prediction**: Real OpenAI GPT scoring (gpt-4o-mini) — each page scored 0-100 with reason; ≥65 = "Likely"
 - **Decay Score Logic**: Pages 90+ days old with declining traffic flagged Critical
+- **Date Filtering**: Any time, 1 month, 3 months, 6 months, 1 year, 1.5 years, 2 years
+- **Sortable Columns**: All columns sortable asc/desc (click headers)
+- **Pagination**: 12 items per page
 
 ### API (`artifacts/api-server`)
 Routes:
@@ -75,4 +78,5 @@ Routes:
   - Critical: >90 days old + declining traffic, OR decay score ≥75
   - Review: >90 days old, OR >60 days old with declining traffic
   - Healthy: ≤30 days old with stable/rising traffic, OR generally fresh
-- **AI Citation Likelihood**: page with 300+ words AND (100+ word excerpt OR 800+ words)
+- **AI Citation Likelihood**: Real GPT-4o-mini scoring via OpenAI; score ≥65 = Likely, <65 = Unlikely; fallback heuristic if no AI score available
+- **Rescore AI Endpoint**: `POST /api/sync/rescore-ai` — batch re-scores all pages' AI citation likelihood

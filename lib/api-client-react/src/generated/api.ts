@@ -823,6 +823,85 @@ export const useSyncGsc = <
 };
 
 /**
+ * @summary Re-score AI citation likelihood for all pages
+ */
+export const getRescoreAiUrl = () => {
+  return `/api/sync/rescore-ai`;
+};
+
+export const rescoreAi = async (options?: RequestInit): Promise<SyncResult> => {
+  return customFetch<SyncResult>(getRescoreAiUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRescoreAiMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rescoreAi>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rescoreAi>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["rescoreAi"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rescoreAi>>,
+    void
+  > = () => {
+    return rescoreAi(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RescoreAiMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rescoreAi>>
+>;
+
+export type RescoreAiMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Re-score AI citation likelihood for all pages
+ */
+export const useRescoreAi = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rescoreAi>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rescoreAi>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRescoreAiMutationOptions(options));
+};
+
+/**
  * @summary Get sync status
  */
 export const getGetSyncStatusUrl = () => {

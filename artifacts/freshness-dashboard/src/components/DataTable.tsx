@@ -25,7 +25,7 @@ const PAGE_SIZE = 12;
 
 type SortField = 'title' | 'clicks30d' | 'lastUpdated' | 'freshnessScore' | 'decayScore' | 'triageStatus' | 'aiCitationLikely';
 type SortDir = 'asc' | 'desc';
-type DateFilter = 'all' | '7d' | '30d' | '90d' | '90d+';
+type DateFilter = 'all' | '1m' | '3m' | '6m' | '1y' | '1.5y' | '2y';
 
 interface DataTableProps {
   pages: PageFreshness[];
@@ -67,10 +67,12 @@ export function DataTable({ pages }: DataTableProps) {
         let matchesDate = true;
         if (dateFilter !== 'all') {
           const daysSince = Math.floor((now - new Date(page.lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
-          if (dateFilter === '7d') matchesDate = daysSince <= 7;
-          else if (dateFilter === '30d') matchesDate = daysSince <= 30;
-          else if (dateFilter === '90d') matchesDate = daysSince <= 90;
-          else if (dateFilter === '90d+') matchesDate = daysSince > 90;
+          if (dateFilter === '1m') matchesDate = daysSince <= 30;
+          else if (dateFilter === '3m') matchesDate = daysSince <= 90;
+          else if (dateFilter === '6m') matchesDate = daysSince <= 180;
+          else if (dateFilter === '1y') matchesDate = daysSince <= 365;
+          else if (dateFilter === '1.5y') matchesDate = daysSince <= 548;
+          else if (dateFilter === '2y') matchesDate = daysSince <= 730;
         }
 
         return matchesTab && matchesSearch && matchesDate;
@@ -120,10 +122,12 @@ export function DataTable({ pages }: DataTableProps) {
 
   const dateFilters: { id: DateFilter, label: string }[] = [
     { id: 'all', label: 'Any time' },
-    { id: '7d', label: 'Last 7 days' },
-    { id: '30d', label: 'Last 30 days' },
-    { id: '90d', label: 'Last 90 days' },
-    { id: '90d+', label: 'Older than 90d' },
+    { id: '1m', label: 'Last 1 month' },
+    { id: '3m', label: 'Last 3 months' },
+    { id: '6m', label: 'Last 6 months' },
+    { id: '1y', label: 'Last 1 year' },
+    { id: '1.5y', label: 'Last 1.5 years' },
+    { id: '2y', label: 'Last 2 years' },
   ];
 
   const getTrafficIcon = (trend: string) => {

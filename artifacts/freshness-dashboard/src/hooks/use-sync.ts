@@ -4,6 +4,7 @@ import {
   useUpdateSettings,
   useSyncSitemap,
   useSyncGsc,
+  useRescoreAi,
   useGetSyncStatus,
   getGetPagesQueryKey,
   getGetStatsQueryKey,
@@ -73,5 +74,21 @@ export function useSyncActions() {
     },
   });
 
-  return { updateSettings, syncSitemap, syncGsc };
+  const rescoreAi = useRescoreAi({
+    mutation: {
+      onSuccess: (data) => {
+        invalidateAll();
+        toast({
+          title: data.success ? "AI Rescore Complete" : "AI Rescore Issue",
+          description: data.message,
+          variant: data.success ? "default" : "destructive",
+        });
+      },
+      onError: (err: any) => {
+        toast({ title: "Rescore Failed", description: err?.message || "AI rescore failed.", variant: "destructive" });
+      },
+    },
+  });
+
+  return { updateSettings, syncSitemap, syncGsc, rescoreAi };
 }

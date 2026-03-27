@@ -148,6 +148,17 @@ export const SyncGscResponse = zod.object({
 });
 
 /**
+ * @summary Re-score AI citation likelihood for all pages
+ */
+export const RescoreAiResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+  upserted: zod.number(),
+  updated: zod.number(),
+  errors: zod.array(zod.string()),
+});
+
+/**
  * @summary Get sync status
  */
 export const GetSyncStatusResponse = zod.object({
