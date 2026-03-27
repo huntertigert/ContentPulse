@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, pagesTable } from "@workspace/db";
-import { eq, gte } from "drizzle-orm";
+import { eq, gte, sql } from "drizzle-orm";
 import { google } from "googleapis";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { batchProcess } from "@workspace/integrations-openai-ai-server/batch";
@@ -276,6 +276,9 @@ router.post("/sitemap", async (_req, res) => {
       return;
     }
 
+    // Resolve relative URLs against the sitemap origin
+    const sitemapOrigin = new URL(sitemapUrl).origin;
+
     // Build valid rows
     const rows: Array<{ url: string; lastUpdated: Date }> = [];
     for (const entry of entries) {
@@ -284,7 +287,13 @@ router.post("/sitemap", async (_req, res) => {
         errors.push(`Skipped ${entry.url}: invalid date "${entry.lastmod}"`);
         continue;
       }
-      rows.push({ url: entry.url, lastUpdated });
+      let url = entry.url;
+      if (url.startsWith("/")) {
+        url = sitemapOrigin + url;
+      } else if (!url.startsWith("http")) {
+        url = sitemapOrigin + "/" + url;
+      }
+      rows.push({ url, lastUpdated });
     }
 
     // Step 1: Scrape HTML metadata (title, excerpt, word count) in parallel batches
@@ -519,6 +528,81 @@ router.post("/rescore-ai", async (req, res) => {
     res.status(500).json({
       success: false,
       message: `AI rescore failed: ${String(err)}`,
+      upserted: 0,
+      updated,
+      errors: [String(err)],
+    });
+  }
+});
+
+// POST /sync/fix-titles — resolve relative URLs and re-scrape missing titles
+router.post("/fix-titles", async (_req, res) => {
+  let updated = 0;
+  try {
+    const sitemapUrl = await getSetting("sitemapUrl");
+    const origin = sitemapUrl ? new URL(sitemapUrl).origin : null;
+
+    const untitled = await db
+      .select()
+      .from(pagesTable)
+      .where(eq(pagesTable.title, ""))
+      .orderBy(pagesTable.id);
+
+    const untitledNull = await db
+      .select()
+      .from(pagesTable)
+      .where(sql`${pagesTable.title} IS NULL`)
+      .orderBy(pagesTable.id);
+
+    const allUntitled = [...untitled, ...untitledNull];
+
+    if (allUntitled.length === 0) {
+      res.json({ success: true, message: "No untitled pages found.", upserted: 0, updated: 0, errors: [] });
+      return;
+    }
+
+    console.log(`Fixing titles for ${allUntitled.length} pages...`);
+
+    const results = await batchProcess(
+      allUntitled,
+      async (page) => {
+        let url = page.url;
+        if (!url.startsWith("http") && origin) {
+          url = url.startsWith("/") ? origin + url : origin + "/" + url;
+        }
+
+        const needsUrlFix = url !== page.url;
+        const meta = await scrapePageMeta(url);
+
+        if (meta.title || needsUrlFix || meta.wordCount > 0) {
+          const updates: Record<string, any> = {};
+          if (needsUrlFix) updates.url = url;
+          if (meta.title) updates.title = meta.title;
+          if (meta.wordCount > 0) updates.wordCount = meta.wordCount;
+          if (meta.excerpt) updates.excerpt = meta.excerpt;
+          if (Object.keys(updates).length > 0) {
+            await db.update(pagesTable).set(updates).where(eq(pagesTable.id, page.id));
+            return true;
+          }
+        }
+        return false;
+      },
+      { concurrency: 8, retries: 1 },
+    );
+
+    updated = results.filter(Boolean).length;
+    res.json({
+      success: true,
+      message: `Fixed titles for ${updated} of ${allUntitled.length} pages.`,
+      upserted: 0,
+      updated,
+      errors: [],
+    });
+  } catch (err) {
+    console.error("Fix titles error:", err);
+    res.status(500).json({
+      success: false,
+      message: `Fix titles failed: ${String(err)}`,
       upserted: 0,
       updated,
       errors: [String(err)],
