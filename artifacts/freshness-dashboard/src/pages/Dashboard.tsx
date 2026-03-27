@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { useSettings, useSyncActions } from '@/hooks/use-sync';
 import { StatCard } from '@/components/StatCard';
 import { FreshnessLoop } from '@/components/FreshnessLoop';
-import { DataTable } from '@/components/DataTable';
+import { DataTable, filterByContentType, type ContentType } from '@/components/DataTable';
 import { CsvUploadModal } from '@/components/CsvUploadModal';
 import { ConnectModal } from '@/components/ConnectModal';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,25 @@ export default function Dashboard() {
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [contentType, setContentType] = useState<ContentType>('blog');
+
+  const filteredPages = useMemo(() => filterByContentType(pages, contentType), [pages, contentType]);
+
+  const filteredStats = useMemo(() => {
+    const fp = filteredPages;
+    const now = Date.now();
+    const freshCount = fp.filter(p => {
+      const days = (now - new Date(p.lastUpdated).getTime()) / 86400000;
+      return days < 90;
+    }).length;
+    return {
+      totalPages: fp.length,
+      freshPercent: fp.length > 0 ? Math.round((freshCount / fp.length) * 1000) / 10 : 0,
+      criticalCount: fp.filter(p => p.triageStatus === 'critical').length,
+      healthyCount: fp.filter(p => p.triageStatus === 'healthy').length,
+      aiCitationReadyCount: fp.filter(p => p.aiCitationLikely).length,
+    };
+  }, [filteredPages]);
 
   const isConnected = syncStatus?.sitemapConfigured || syncStatus?.gscConfigured
     || settings?.sitemapUrl || settings?.gscHasCredentials;
@@ -38,10 +57,7 @@ export default function Dashboard() {
     );
   }
 
-  const safeStats = stats || {
-    totalPages: 0, freshPercent: 0, criticalCount: 0, reviewCount: 0,
-    healthyCount: 0, aiCitationReadyCount: 0, avgFreshnessScore: 0,
-  };
+  const safeStats = filteredStats;
 
   return (
     <div className="min-h-screen pb-20 relative">
@@ -153,7 +169,7 @@ export default function Dashboard() {
             </div>
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-              <DataTable pages={pages} />
+              <DataTable pages={filteredPages} contentType={contentType} onContentTypeChange={setContentType} />
             </motion.div>
           </>
         )}
