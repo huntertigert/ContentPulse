@@ -282,8 +282,14 @@ router.post("/upload-semrush-csv", async (req, res) => {
       return;
     }
 
+    interface KeywordEntry {
+      keyword: string;
+      position: number;
+      volume: number;
+      kd: number;
+    }
     const urlData: Record<string, {
-      keywords: string[];
+      entries: KeywordEntry[];
       bestPosition: number;
       totalVolume: number;
       topKeyword: string;
@@ -314,11 +320,11 @@ router.post("/upload-semrush-csv", async (req, res) => {
         const kd = kdIdx !== -1 ? parseFloat(cols[kdIdx]?.replace(/%/g, "") ?? "0") || 0 : 0;
 
         if (!urlData[url]) {
-          urlData[url] = { keywords: [], bestPosition: 999, totalVolume: 0, topKeyword: keyword, topVolume: 0, kdValues: [] };
+          urlData[url] = { entries: [], bestPosition: 999, totalVolume: 0, topKeyword: keyword, topVolume: 0, kdValues: [] };
         }
 
         const d = urlData[url];
-        d.keywords.push(keyword);
+        d.entries.push({ keyword, position, volume, kd });
         d.totalVolume += volume;
         if (position > 0 && position < d.bestPosition) d.bestPosition = position;
         if (volume > d.topVolume) {
@@ -357,14 +363,16 @@ router.post("/upload-semrush-csv", async (req, res) => {
 
       if (matchedPage) {
         const avgKd = data.kdValues.length > 0 ? Math.round(data.kdValues.reduce((a, b) => a + b, 0) / data.kdValues.length * 10) / 10 : null;
+        const sortedEntries = data.entries.sort((a, b) => b.volume - a.volume);
 
         await db.update(pagesTable)
           .set({
-            semrushKeywords: data.keywords.length,
+            semrushKeywords: data.entries.length,
             semrushTopKeyword: data.topKeyword,
             semrushTopPosition: data.bestPosition < 999 ? data.bestPosition : null,
             semrushVolume: data.totalVolume,
             semrushKd: avgKd,
+            semrushKeywordList: JSON.stringify(sortedEntries),
           })
           .where(eq(pagesTable.id, matchedPage.id));
 

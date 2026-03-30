@@ -27,6 +27,13 @@ export const PageFreshnessTrafficTrend = {
   stable: "stable",
 } as const;
 
+export type PageFreshnessSemrushKeywordListItem = {
+  keyword: string;
+  position: number;
+  volume: number;
+  kd: number;
+};
+
 export interface PageFreshness {
   id: number;
   url: string;
@@ -49,6 +56,7 @@ export interface PageFreshness {
   semrushTopPosition?: number | null;
   semrushVolume?: number | null;
   semrushKd?: number | null;
+  semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
 }
 
 export interface CreatePageInput {

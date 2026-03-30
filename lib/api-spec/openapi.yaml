@@ -269,6 +269,21 @@ components:
         semrushKd:
           type: number
           nullable: true
+        semrushKeywordList:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              keyword:
+                type: string
+              position:
+                type: integer
+              volume:
+                type: integer
+              kd:
+                type: number
+            required: [keyword, position, volume, kd]
       required:
         - id
         - url

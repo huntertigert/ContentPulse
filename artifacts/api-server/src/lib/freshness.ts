@@ -25,6 +25,7 @@ export interface PageFreshnessData {
   semrushTopPosition: number | null;
   semrushVolume: number | null;
   semrushKd: number | null;
+  semrushKeywordList: { keyword: string; position: number; volume: number; kd: number }[] | null;
 }
 
 export function calculateFreshness(page: Page): PageFreshnessData {
@@ -137,5 +138,6 @@ export function calculateFreshness(page: Page): PageFreshnessData {
     semrushTopPosition: page.semrushTopPosition,
     semrushVolume: page.semrushVolume,
     semrushKd: page.semrushKd,
+    semrushKeywordList: page.semrushKeywordList ? JSON.parse(page.semrushKeywordList) : null,
   };
 }

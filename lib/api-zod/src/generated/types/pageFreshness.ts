@@ -5,6 +5,7 @@
  * Content Freshness Dashboard API
  * OpenAPI spec version: 0.1.0
  */
+import type { PageFreshnessSemrushKeywordListItem } from "./pageFreshnessSemrushKeywordListItem";
 import type { PageFreshnessTrafficTrend } from "./pageFreshnessTrafficTrend";
 import type { PageFreshnessTriageStatus } from "./pageFreshnessTriageStatus";
 
@@ -30,4 +31,5 @@ export interface PageFreshness {
   semrushTopPosition?: number | null;
   semrushVolume?: number | null;
   semrushKd?: number | null;
+  semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
 }

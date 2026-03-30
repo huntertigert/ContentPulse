@@ -39,6 +39,16 @@ export const GetPagesResponseItem = zod.object({
   semrushTopPosition: zod.number().nullish(),
   semrushVolume: zod.number().nullish(),
   semrushKd: zod.number().nullish(),
+  semrushKeywordList: zod
+    .array(
+      zod.object({
+        keyword: zod.string(),
+        position: zod.number(),
+        volume: zod.number(),
+        kd: zod.number(),
+      }),
+    )
+    .nullish(),
 });
 export const GetPagesResponse = zod.array(GetPagesResponseItem);
 

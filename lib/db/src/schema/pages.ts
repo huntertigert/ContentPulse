@@ -18,6 +18,7 @@ export const pagesTable = pgTable("pages", {
   semrushTopPosition: integer("semrush_top_position"),
   semrushVolume: integer("semrush_volume"),
   semrushKd: real("semrush_kd"),
+  semrushKeywordList: text("semrush_keyword_list"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

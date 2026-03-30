@@ -12,10 +12,13 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp as ChevronUpIcon,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Calendar,
+  TrendingUp,
 } from 'lucide-react';
 import { PageFreshness, PageFreshnessTriageStatus } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
@@ -51,7 +54,17 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
   const [sortField, setSortField] = useState<SortField>('decayScore');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [expandedKeywords, setExpandedKeywords] = useState<Set<number>>(new Set());
   const { deletePage } = useDashboardMutations();
+
+  const toggleKeywords = (pageId: number) => {
+    setExpandedKeywords(prev => {
+      const next = new Set(prev);
+      if (next.has(pageId)) next.delete(pageId);
+      else next.add(pageId);
+      return next;
+    });
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -365,15 +378,48 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                       </td>
                       <td className="p-4">
                         {page.semrushKeywords != null ? (
-                          <div className="flex flex-col gap-0.5" title={page.semrushTopKeyword ? `Top keyword: "${page.semrushTopKeyword}" (pos #${page.semrushTopPosition ?? '—'})` : ''}>
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => toggleKeywords(page.id)}
+                              className="flex items-center gap-1.5 hover:bg-white/5 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors text-left"
+                            >
                               <span className="text-sm font-semibold text-foreground">{page.semrushKeywords}</span>
                               <span className="text-xs text-muted-foreground">kw</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                              {(page.semrushVolume ?? 0).toLocaleString()} vol
-                              {page.semrushTopPosition != null && ` · #${page.semrushTopPosition}`}
-                            </span>
+                              <span className="text-xs text-muted-foreground mx-0.5">·</span>
+                              <span className="text-xs text-muted-foreground">{(page.semrushVolume ?? 0).toLocaleString()} vol</span>
+                              {expandedKeywords.has(page.id) ? (
+                                <ChevronUpIcon size={12} className="text-muted-foreground ml-auto" />
+                              ) : (
+                                <ChevronDown size={12} className="text-muted-foreground ml-auto" />
+                              )}
+                            </button>
+                            <AnimatePresence>
+                              {expandedKeywords.has(page.id) && page.semrushKeywordList && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="flex flex-col gap-0.5 pt-1 border-t border-white/5 mt-0.5 max-h-[200px] overflow-y-auto">
+                                    {page.semrushKeywordList.map((kw, idx) => (
+                                      <div key={idx} className="flex items-center gap-2 text-xs py-0.5 group/kw">
+                                        <span className="text-foreground/80 truncate max-w-[140px] flex-1" title={kw.keyword}>{kw.keyword}</span>
+                                        <span className="text-muted-foreground shrink-0">{kw.volume.toLocaleString()}</span>
+                                        <span className={cn(
+                                          "shrink-0 font-mono text-[10px] px-1 rounded",
+                                          kw.position <= 3 ? "text-success bg-success/10" :
+                                          kw.position <= 10 ? "text-blue-400 bg-blue-400/10" :
+                                          kw.position <= 20 ? "text-warning bg-warning/10" :
+                                          "text-muted-foreground bg-white/5"
+                                        )}>#{kw.position}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground/50">—</span>
