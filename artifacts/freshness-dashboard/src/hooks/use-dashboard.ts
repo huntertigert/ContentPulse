@@ -3,6 +3,7 @@ import {
   useGetPages, 
   useGetStats, 
   useUploadCsv, 
+  useUploadSemrushCsv,
   useDeletePage,
   getGetPagesQueryKey,
   getGetStatsQueryKey
@@ -66,8 +67,30 @@ export function useDashboardMutations() {
     }
   });
 
+  const uploadSemrushCsvMutation = useUploadSemrushCsv({
+    mutation: {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({ queryKey: getGetPagesQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetStatsQueryKey() });
+        toast({
+          title: "SEMrush Import Successful",
+          description: `Processed ${data.imported} keyword rows. Matched ${data.matched} pages with keyword data.`,
+          variant: "default",
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          title: "SEMrush Import Failed",
+          description: error?.message || "Could not process SEMrush CSV data.",
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
   return {
     uploadCsv: uploadCsvMutation,
+    uploadSemrushCsv: uploadSemrushCsvMutation,
     deletePage: deletePageMutation
   };
 }

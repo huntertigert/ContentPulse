@@ -16,6 +16,7 @@ export * from "./pageFreshnessTrafficTrend";
 export * from "./pageFreshnessTriageStatus";
 export * from "./rescoreAiBody";
 export * from "./rescoreAiBodyDateFilter";
+export * from "./semrushUploadResult";
 export * from "./settings";
 export * from "./syncResult";
 export * from "./syncStatus";

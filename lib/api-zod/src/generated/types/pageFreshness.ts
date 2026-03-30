@@ -25,4 +25,9 @@ export interface PageFreshness {
   daysSinceUpdate: number;
   trafficTrend: PageFreshnessTrafficTrend;
   createdAt: Date;
+  semrushKeywords?: number | null;
+  semrushTopKeyword?: string | null;
+  semrushTopPosition?: number | null;
+  semrushVolume?: number | null;
+  semrushKd?: number | null;
 }

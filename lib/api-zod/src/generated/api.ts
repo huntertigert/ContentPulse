@@ -34,6 +34,11 @@ export const GetPagesResponseItem = zod.object({
   daysSinceUpdate: zod.number(),
   trafficTrend: zod.enum(["up", "down", "stable"]),
   createdAt: zod.date(),
+  semrushKeywords: zod.number().nullish(),
+  semrushTopKeyword: zod.string().nullish(),
+  semrushTopPosition: zod.number().nullish(),
+  semrushVolume: zod.number().nullish(),
+  semrushKd: zod.number().nullish(),
 });
 export const GetPagesResponse = zod.array(GetPagesResponseItem);
 
@@ -60,6 +65,20 @@ export const UploadCsvBody = zod.object({
 export const UploadCsvResponse = zod.object({
   imported: zod.number(),
   skipped: zod.number(),
+  errors: zod.array(zod.string()),
+});
+
+/**
+ * @summary Upload SEMrush CSV to enrich pages with keyword data
+ */
+export const UploadSemrushCsvBody = zod.object({
+  csvData: zod.string(),
+});
+
+export const UploadSemrushCsvResponse = zod.object({
+  imported: zod.number(),
+  skipped: zod.number(),
+  matched: zod.number(),
   errors: zod.array(zod.string()),
 });
 

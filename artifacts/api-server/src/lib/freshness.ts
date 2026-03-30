@@ -20,6 +20,11 @@ export interface PageFreshnessData {
   daysSinceUpdate: number;
   trafficTrend: TrafficTrend;
   createdAt: Date;
+  semrushKeywords: number | null;
+  semrushTopKeyword: string | null;
+  semrushTopPosition: number | null;
+  semrushVolume: number | null;
+  semrushKd: number | null;
 }
 
 export function calculateFreshness(page: Page): PageFreshnessData {
@@ -127,5 +132,10 @@ export function calculateFreshness(page: Page): PageFreshnessData {
     daysSinceUpdate,
     trafficTrend,
     createdAt: page.createdAt,
+    semrushKeywords: page.semrushKeywords,
+    semrushTopKeyword: page.semrushTopKeyword,
+    semrushTopPosition: page.semrushTopPosition,
+    semrushVolume: page.semrushVolume,
+    semrushKd: page.semrushKd,
   };
 }

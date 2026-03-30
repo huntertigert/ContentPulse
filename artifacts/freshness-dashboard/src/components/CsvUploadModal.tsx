@@ -9,10 +9,11 @@ interface CsvUploadModalProps {
   onClose: () => void;
 }
 
-type SourceTab = 'gsc' | 'wordpress' | 'ga' | 'manual';
+type SourceTab = 'gsc' | 'wordpress' | 'ga' | 'semrush' | 'manual';
 
 const SOURCES: { id: SourceTab; label: string; emoji: string }[] = [
   { id: 'gsc', label: 'Google Search Console', emoji: '🔍' },
+  { id: 'semrush', label: 'SEMrush', emoji: '📈' },
   { id: 'wordpress', label: 'WordPress', emoji: '🟦' },
   { id: 'ga', label: 'Google Analytics', emoji: '📊' },
   { id: 'manual', label: 'Manual / Custom', emoji: '📄' },
@@ -47,6 +48,19 @@ const SOURCE_INSTRUCTIONS: Record<SourceTab, React.ReactNode> = {
       <li className="flex gap-2"><span className="text-primary font-semibold shrink-0">4.</span><span>Upload the file below — <code className="text-xs bg-white/10 px-1 rounded">Page path</code> → URL, <code className="text-xs bg-white/10 px-1 rounded">Sessions</code> → traffic</span></li>
     </ol>
   ),
+  semrush: (
+    <ol className="space-y-2 text-sm text-muted-foreground list-none">
+      <li className="flex gap-2"><span className="text-primary font-semibold shrink-0">1.</span><span>Go to <strong className="text-foreground">SEMrush → Organic Research → Positions</strong></span></li>
+      <li className="flex gap-2"><span className="text-primary font-semibold shrink-0">2.</span><span>Enter your domain and click <strong className="text-foreground">Search</strong></span></li>
+      <li className="flex gap-2"><span className="text-primary font-semibold shrink-0">3.</span><span>Click <strong className="text-foreground">Export</strong> in the top right of the keyword table</span></li>
+      <li className="flex gap-2"><span className="text-primary font-semibold shrink-0">4.</span><span>Choose <strong className="text-foreground">CSV</strong> format and download</span></li>
+      <li className="flex gap-2"><span className="text-primary font-semibold shrink-0">5.</span><span>Upload the file below — keywords will be matched to your existing pages by URL</span></li>
+      <li className="flex gap-2 text-xs bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-2 mt-1">
+        <span>💡</span>
+        <span>Expected columns: <code className="bg-white/10 px-1 rounded">Keyword</code>, <code className="bg-white/10 px-1 rounded">Position</code>, <code className="bg-white/10 px-1 rounded">Search Volume</code>, <code className="bg-white/10 px-1 rounded">URL</code>, <code className="bg-white/10 px-1 rounded">Keyword Difficulty</code></span>
+      </li>
+    </ol>
+  ),
   manual: (
     <div className="space-y-3 text-sm text-muted-foreground">
       <p>Only <strong className="text-foreground">URL</strong> is required. All other columns are optional.</p>
@@ -71,7 +85,7 @@ export function CsvUploadModal({ isOpen, onClose }: CsvUploadModalProps) {
   const [activeSource, setActiveSource] = useState<SourceTab>('gsc');
   const [showInstructions, setShowInstructions] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { uploadCsv } = useDashboardMutations();
+  const { uploadCsv, uploadSemrushCsv } = useDashboardMutations();
 
   const readFile = (file: File) => {
     if (!file.name.endsWith('.csv') && file.type !== 'text/csv' && file.type !== 'text/plain') {
@@ -112,9 +126,12 @@ export function CsvUploadModal({ isOpen, onClose }: CsvUploadModalProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const isSemrush = activeSource === 'semrush';
+  const activeMutation = isSemrush ? uploadSemrushCsv : uploadCsv;
+
   const handleUpload = () => {
     if (!csvData.trim()) return;
-    uploadCsv.mutate({ data: { csvData } }, {
+    activeMutation.mutate({ data: { csvData } }, {
       onSuccess: () => {
         handleClear();
         onClose();
@@ -278,7 +295,7 @@ export function CsvUploadModal({ isOpen, onClose }: CsvUploadModalProps) {
                 </button>
                 <button
                   onClick={handleUpload}
-                  disabled={!csvData.trim() || uploadCsv.isPending}
+                  disabled={!csvData.trim() || activeMutation.isPending}
                   className={cn(
                     "flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-200",
                     "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -286,10 +303,10 @@ export function CsvUploadModal({ isOpen, onClose }: CsvUploadModalProps) {
                     "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                   )}
                 >
-                  {uploadCsv.isPending ? (
+                  {activeMutation.isPending ? (
                     <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing...</>
                   ) : (
-                    <><Upload size={18} />Import Data</>
+                    <><Upload size={18} />{isSemrush ? 'Import SEMrush Data' : 'Import Data'}</>
                   )}
                 </button>
               </div>

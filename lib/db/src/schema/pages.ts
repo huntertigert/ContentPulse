@@ -13,6 +13,11 @@ export const pagesTable = pgTable("pages", {
   excerpt: text("excerpt"),
   aiCitationScore: integer("ai_citation_score"),
   aiCitationReason: text("ai_citation_reason"),
+  semrushKeywords: integer("semrush_keywords"),
+  semrushTopKeyword: text("semrush_top_keyword"),
+  semrushTopPosition: integer("semrush_top_position"),
+  semrushVolume: integer("semrush_volume"),
+  semrushKd: real("semrush_kd"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

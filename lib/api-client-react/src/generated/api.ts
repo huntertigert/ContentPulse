@@ -24,6 +24,7 @@ import type {
   HealthStatus,
   PageFreshness,
   RescoreAiBody,
+  SemrushUploadResult,
   Settings,
   SyncResult,
   SyncStatus,
@@ -351,6 +352,92 @@ export const useUploadCsv = <
   TContext
 > => {
   return useMutation(getUploadCsvMutationOptions(options));
+};
+
+/**
+ * @summary Upload SEMrush CSV to enrich pages with keyword data
+ */
+export const getUploadSemrushCsvUrl = () => {
+  return `/api/pages/upload-semrush-csv`;
+};
+
+export const uploadSemrushCsv = async (
+  csvUploadInput: CsvUploadInput,
+  options?: RequestInit,
+): Promise<SemrushUploadResult> => {
+  return customFetch<SemrushUploadResult>(getUploadSemrushCsvUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(csvUploadInput),
+  });
+};
+
+export const getUploadSemrushCsvMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadSemrushCsv>>,
+    TError,
+    { data: BodyType<CsvUploadInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadSemrushCsv>>,
+  TError,
+  { data: BodyType<CsvUploadInput> },
+  TContext
+> => {
+  const mutationKey = ["uploadSemrushCsv"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadSemrushCsv>>,
+    { data: BodyType<CsvUploadInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return uploadSemrushCsv(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadSemrushCsvMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadSemrushCsv>>
+>;
+export type UploadSemrushCsvMutationBody = BodyType<CsvUploadInput>;
+export type UploadSemrushCsvMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Upload SEMrush CSV to enrich pages with keyword data
+ */
+export const useUploadSemrushCsv = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadSemrushCsv>>,
+    TError,
+    { data: BodyType<CsvUploadInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uploadSemrushCsv>>,
+  TError,
+  { data: BodyType<CsvUploadInput> },
+  TContext
+> => {
+  return useMutation(getUploadSemrushCsvMutationOptions(options));
 };
 
 /**

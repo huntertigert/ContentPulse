@@ -23,7 +23,7 @@ import { useDashboardMutations } from '@/hooks/use-dashboard';
 
 const PAGE_SIZE = 12;
 
-type SortField = 'title' | 'clicks30d' | 'lastUpdated' | 'freshnessScore' | 'decayScore' | 'triageStatus' | 'aiCitationLikely';
+type SortField = 'title' | 'clicks30d' | 'lastUpdated' | 'freshnessScore' | 'decayScore' | 'triageStatus' | 'aiCitationLikely' | 'semrushVolume';
 type SortDir = 'asc' | 'desc';
 type DateFilter = 'all' | '1m' | '3m' | '6m' | '1y' | '1.5y' | '2y';
 export type ContentType = 'all' | 'blog' | 'news' | 'blog+news';
@@ -115,6 +115,9 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
           }
           case 'aiCitationLikely':
             cmp = (a.aiCitationLikely ? 1 : 0) - (b.aiCitationLikely ? 1 : 0);
+            break;
+          case 'semrushVolume':
+            cmp = (a.semrushVolume ?? 0) - (b.semrushVolume ?? 0);
             break;
         }
         return sortDir === 'asc' ? cmp : -cmp;
@@ -272,6 +275,11 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                     AI Citation <SortIcon field="aiCitationLikely" />
                   </button>
                 </th>
+                <th className="p-4 font-medium">
+                  <button onClick={() => handleSort('semrushVolume')} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    Keywords <SortIcon field="semrushVolume" />
+                  </button>
+                </th>
                 <th className="p-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -355,6 +363,22 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                           </div>
                         )}
                       </td>
+                      <td className="p-4">
+                        {page.semrushKeywords != null ? (
+                          <div className="flex flex-col gap-0.5" title={page.semrushTopKeyword ? `Top keyword: "${page.semrushTopKeyword}" (pos #${page.semrushTopPosition ?? '—'})` : ''}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-semibold text-foreground">{page.semrushKeywords}</span>
+                              <span className="text-xs text-muted-foreground">kw</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                              {(page.semrushVolume ?? 0).toLocaleString()} vol
+                              {page.semrushTopPosition != null && ` · #${page.semrushTopPosition}`}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50">—</span>
+                        )}
+                      </td>
                       <td className="p-4 text-right">
                         <button
                           onClick={() => deletePage.mutate({ id: page.id })}
@@ -368,7 +392,7 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                   ))
                 ) : (
                   <tr className="border-none">
-                    <td colSpan={8} className="p-12 text-center">
+                    <td colSpan={9} className="p-12 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <Filter size={32} className="mb-3 opacity-20" />
                         <p className="text-lg font-medium text-foreground">No pages found</p>

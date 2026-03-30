@@ -48,9 +48,10 @@ artifacts-monorepo/
 ### Content Freshness Dashboard (`artifacts/freshness-dashboard`)
 - **Freshness Loop** progress bar showing % of site under 90 days old
 - **Stats cards**: Total Pages, Critical Refresh, Healthy, AI Citation Ready
-- **Data Table**: Page URL, Traffic (30d), Last Updated, Freshness Score, Decay Score, Triage Status, AI Citation
+- **Data Table**: Page URL, Traffic (30d), Last Updated, Freshness Score, Decay Score, Triage Status, AI Citation, Keywords (SEMrush)
 - **Triage Tabs**: All / Critical Refresh / Needs Review / Healthy
-- **CSV Upload**: Import pages from CSV (url, title, lastUpdated, clicks30d, clicksPrev30d, wordCount, excerpt)
+- **CSV Upload**: Import pages from CSV (url, title, lastUpdated, clicks30d, clicksPrev30d, wordCount, excerpt) — supports GSC, WordPress, GA, SEMrush, Manual tabs
+- **SEMrush Integration**: Upload SEMrush Organic Positions CSV to enrich pages with keyword count, top keyword, best position, total search volume, and avg keyword difficulty
 - **AI Citation Prediction**: Real OpenAI GPT scoring (gpt-4o-mini) — each page scored 0-100 with reason; ≥65 = "Likely"
 - **Decay Score Logic**: Pages 90+ days old with declining traffic flagged Critical
 - **Date Filtering**: Any time, 1 month, 3 months, 6 months, 1 year, 1.5 years, 2 years
@@ -62,13 +63,14 @@ Routes:
 - `GET /api/pages` — list all pages with computed freshness data
 - `POST /api/pages` — add a page manually
 - `POST /api/pages/upload-csv` — bulk CSV import
+- `POST /api/pages/upload-semrush-csv` — SEMrush keyword CSV import (matches to existing pages by URL)
 - `DELETE /api/pages/:id` — remove a page
 - `GET /api/pages/stats` — dashboard statistics
 
 ## Database Schema
 
 `pages` table:
-- id, url, title, last_updated, clicks_30d, clicks_prev_30d, word_count, excerpt, created_at
+- id, url, title, last_updated, clicks_30d, clicks_prev_30d, word_count, excerpt, ai_citation_score, ai_citation_reason, semrush_keywords, semrush_top_keyword, semrush_top_position, semrush_volume, semrush_kd, created_at
 
 ## Freshness Algorithm
 

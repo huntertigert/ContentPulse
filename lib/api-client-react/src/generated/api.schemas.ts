@@ -44,6 +44,11 @@ export interface PageFreshness {
   daysSinceUpdate: number;
   trafficTrend: PageFreshnessTrafficTrend;
   createdAt: string;
+  semrushKeywords?: number | null;
+  semrushTopKeyword?: string | null;
+  semrushTopPosition?: number | null;
+  semrushVolume?: number | null;
+  semrushKd?: number | null;
 }
 
 export interface CreatePageInput {
@@ -107,6 +112,13 @@ export interface SyncStatus {
   lastGscSync?: string;
   sitemapConfigured: boolean;
   gscConfigured: boolean;
+}
+
+export interface SemrushUploadResult {
+  imported: number;
+  skipped: number;
+  matched: number;
+  errors: string[];
 }
 
 export type RescoreAiBodyDateFilter =

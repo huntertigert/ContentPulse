@@ -77,6 +77,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CsvUploadResult"
+  /pages/upload-semrush-csv:
+    post:
+      operationId: uploadSemrushCsv
+      tags: [pages]
+      summary: Upload SEMrush CSV to enrich pages with keyword data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvUploadInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemrushUploadResult"
   /pages/{id}:
     delete:
       operationId: deletePage
@@ -236,6 +254,21 @@ components:
         createdAt:
           type: string
           format: date-time
+        semrushKeywords:
+          type: integer
+          nullable: true
+        semrushTopKeyword:
+          type: string
+          nullable: true
+        semrushTopPosition:
+          type: integer
+          nullable: true
+        semrushVolume:
+          type: integer
+          nullable: true
+        semrushKd:
+          type: number
+          nullable: true
       required:
         - id
         - url
@@ -375,3 +408,17 @@ components:
         gscConfigured:
           type: boolean
       required: [sitemapConfigured, gscConfigured]
+    SemrushUploadResult:
+      type: object
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        matched:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required: [imported, skipped, matched, errors]

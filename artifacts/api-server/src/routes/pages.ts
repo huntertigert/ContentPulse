@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, pagesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   CreatePageBody,
   UploadCsvBody,
@@ -232,6 +232,154 @@ router.post("/upload-csv", async (req, res) => {
     res.json({ imported, skipped, errors });
   } catch (err) {
     console.error("Error uploading CSV:", err);
+    res.status(400).json({ error: "Invalid input" });
+  }
+});
+
+// POST /pages/upload-semrush-csv
+router.post("/upload-semrush-csv", async (req, res) => {
+  try {
+    const body = UploadCsvBody.parse(req.body);
+    const lines = body.csvData.trim().split("\n");
+
+    if (lines.length < 2) {
+      res.json({ imported: 0, skipped: 0, matched: 0, errors: ["CSV must have a header row and at least one data row"] });
+      return;
+    }
+
+    const rawHeader = parseCsvLine(lines[0]);
+    const header = rawHeader.map((h) =>
+      h.trim().toLowerCase().replace(/['"]/g, "").replace(/\s+/g, " "),
+    );
+
+    const findCol = (variants: string[]) =>
+      header.findIndex((h) => variants.includes(h));
+
+    const keywordIdx = findCol(["keyword", "query", "search query", "term"]);
+    const positionIdx = findCol(["position", "pos", "rank", "ranking", "ranking position"]);
+    const volumeIdx = findCol(["search volume", "volume", "search vol", "avg. monthly searches"]);
+    const urlIdx = findCol(["url", "page", "page url", "landing page", "target url"]);
+    const kdIdx = findCol(["keyword difficulty", "kd", "kd %", "difficulty", "keyword difficulty %"]);
+    const trafficIdx = findCol(["traffic", "traffic (%)", "traffic %", "organic traffic"]);
+
+    if (urlIdx === -1) {
+      res.json({
+        imported: 0,
+        skipped: 0,
+        matched: 0,
+        errors: [`Could not find a URL column. Found columns: ${header.join(", ")}. Expected one of: url, page, landing page.`],
+      });
+      return;
+    }
+
+    if (keywordIdx === -1) {
+      res.json({
+        imported: 0,
+        skipped: 0,
+        matched: 0,
+        errors: [`Could not find a Keyword column. Found columns: ${header.join(", ")}. Expected one of: keyword, query, term.`],
+      });
+      return;
+    }
+
+    const urlData: Record<string, {
+      keywords: string[];
+      bestPosition: number;
+      totalVolume: number;
+      topKeyword: string;
+      topVolume: number;
+      kdValues: number[];
+    }> = {};
+
+    let totalRows = 0;
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      totalRows++;
+
+      const cols = parseCsvLine(line);
+      try {
+        const rawUrl = cols[urlIdx]?.trim();
+        const keyword = cols[keywordIdx]?.trim();
+        if (!rawUrl || !keyword) {
+          errors.push(`Row ${i}: missing URL or keyword`);
+          continue;
+        }
+
+        const url = rawUrl.replace(/\/$/, "");
+        const position = positionIdx !== -1 ? parseInt(cols[positionIdx] ?? "0") || 0 : 0;
+        const volume = volumeIdx !== -1 ? parseInt(cols[volumeIdx]?.replace(/,/g, "") ?? "0") || 0 : 0;
+        const kd = kdIdx !== -1 ? parseFloat(cols[kdIdx]?.replace(/%/g, "") ?? "0") || 0 : 0;
+
+        if (!urlData[url]) {
+          urlData[url] = { keywords: [], bestPosition: 999, totalVolume: 0, topKeyword: keyword, topVolume: 0, kdValues: [] };
+        }
+
+        const d = urlData[url];
+        d.keywords.push(keyword);
+        d.totalVolume += volume;
+        if (position > 0 && position < d.bestPosition) d.bestPosition = position;
+        if (volume > d.topVolume) {
+          d.topVolume = volume;
+          d.topKeyword = keyword;
+        }
+        if (kd > 0) d.kdValues.push(kd);
+      } catch (rowErr) {
+        errors.push(`Row ${i}: ${String(rowErr)}`);
+      }
+    }
+
+    const allPages = await db.select().from(pagesTable);
+    let matched = 0;
+    const uniqueUrls = Object.keys(urlData).length;
+
+    const canonicalize = (raw: string): string => {
+      try {
+        const parsed = new URL(raw.startsWith("http") ? raw : `https://placeholder.com${raw.startsWith("/") ? "" : "/"}${raw}`);
+        const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+        const path = parsed.pathname.replace(/\/+/g, "/").replace(/\/$/, "").toLowerCase();
+        return `${host}${path}`;
+      } catch {
+        return raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\?.*$/, "").replace(/#.*$/, "").replace(/\/+/g, "/").replace(/\/$/, "").toLowerCase();
+      }
+    };
+
+    const pagesByCanonical = new Map<string, typeof allPages[0]>();
+    for (const p of allPages) {
+      pagesByCanonical.set(canonicalize(p.url), p);
+    }
+
+    for (const [semrushUrl, data] of Object.entries(urlData)) {
+      const key = canonicalize(semrushUrl);
+      const matchedPage = pagesByCanonical.get(key);
+
+      if (matchedPage) {
+        const avgKd = data.kdValues.length > 0 ? Math.round(data.kdValues.reduce((a, b) => a + b, 0) / data.kdValues.length * 10) / 10 : null;
+
+        await db.update(pagesTable)
+          .set({
+            semrushKeywords: data.keywords.length,
+            semrushTopKeyword: data.topKeyword,
+            semrushTopPosition: data.bestPosition < 999 ? data.bestPosition : null,
+            semrushVolume: data.totalVolume,
+            semrushKd: avgKd,
+          })
+          .where(eq(pagesTable.id, matchedPage.id));
+
+        matched++;
+      }
+    }
+
+    res.json({
+      imported: totalRows,
+      skipped: errors.length,
+      matched,
+      errors: errors.slice(0, 10),
+    });
+  } catch (err) {
+    console.error("Error uploading SEMrush CSV:", err);
     res.status(400).json({ error: "Invalid input" });
   }
 });
