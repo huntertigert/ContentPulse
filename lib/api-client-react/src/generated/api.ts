@@ -17,6 +17,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BatchStatusInput,
+  BatchStatusResult,
   CreatePageInput,
   CsvUploadInput,
   CsvUploadResult,
@@ -438,6 +440,92 @@ export const useUploadSemrushCsv = <
   TContext
 > => {
   return useMutation(getUploadSemrushCsvMutationOptions(options));
+};
+
+/**
+ * @summary Update workflow status for multiple pages
+ */
+export const getBatchUpdateStatusUrl = () => {
+  return `/api/pages/batch-status`;
+};
+
+export const batchUpdateStatus = async (
+  batchStatusInput: BatchStatusInput,
+  options?: RequestInit,
+): Promise<BatchStatusResult> => {
+  return customFetch<BatchStatusResult>(getBatchUpdateStatusUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(batchStatusInput),
+  });
+};
+
+export const getBatchUpdateStatusMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof batchUpdateStatus>>,
+    TError,
+    { data: BodyType<BatchStatusInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof batchUpdateStatus>>,
+  TError,
+  { data: BodyType<BatchStatusInput> },
+  TContext
+> => {
+  const mutationKey = ["batchUpdateStatus"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof batchUpdateStatus>>,
+    { data: BodyType<BatchStatusInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return batchUpdateStatus(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BatchUpdateStatusMutationResult = NonNullable<
+  Awaited<ReturnType<typeof batchUpdateStatus>>
+>;
+export type BatchUpdateStatusMutationBody = BodyType<BatchStatusInput>;
+export type BatchUpdateStatusMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update workflow status for multiple pages
+ */
+export const useBatchUpdateStatus = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof batchUpdateStatus>>,
+    TError,
+    { data: BodyType<BatchStatusInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof batchUpdateStatus>>,
+  TError,
+  { data: BodyType<BatchStatusInput> },
+  TContext
+> => {
+  return useMutation(getBatchUpdateStatusMutationOptions(options));
 };
 
 /**

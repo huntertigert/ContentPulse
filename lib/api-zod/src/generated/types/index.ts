@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./batchStatusInput";
+export * from "./batchStatusInputStatus";
+export * from "./batchStatusResult";
 export * from "./createPageInput";
 export * from "./csvUploadInput";
 export * from "./csvUploadResult";
@@ -15,6 +18,7 @@ export * from "./pageFreshness";
 export * from "./pageFreshnessSemrushKeywordListItem";
 export * from "./pageFreshnessTrafficTrend";
 export * from "./pageFreshnessTriageStatus";
+export * from "./pageFreshnessWorkflowStatus";
 export * from "./rescoreAiBody";
 export * from "./rescoreAiBodyDateFilter";
 export * from "./semrushUploadResult";

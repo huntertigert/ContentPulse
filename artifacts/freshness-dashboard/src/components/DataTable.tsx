@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,9 +18,16 @@ import {
   ArrowUp,
   ArrowDown,
   Calendar,
-  TrendingUp,
   Lightbulb,
   Zap,
+  Download,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  Clock,
+  PlayCircle,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { PageFreshness, PageFreshnessTriageStatus } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
@@ -43,6 +50,87 @@ export function filterByContentType(pages: PageFreshness[], ct: ContentType) {
   });
 }
 
+function getWorkflowBadge(status: string | null | undefined) {
+  switch (status) {
+    case 'queued':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/20">
+          <Clock size={10} />
+          Queued
+        </span>
+      );
+    case 'in_progress':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/20">
+          <PlayCircle size={10} />
+          In Progress
+        </span>
+      );
+    case 'refreshed':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+          <CheckCircle2 size={10} />
+          Refreshed
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+function escapeCsvField(value: string | number | null | undefined): string {
+  if (value == null) return '';
+  let str = String(value);
+  const dangerousPrefixes = ['=', '+', '-', '@', '\t', '\r'];
+  if (dangerousPrefixes.some(p => str.startsWith(p))) {
+    str = `'${str}`;
+  }
+  str = str.replace(/"/g, '""').replace(/\r?\n/g, ' ');
+  return `"${str}"`;
+}
+
+function exportToCsv(pages: PageFreshness[]) {
+  const headers = [
+    'URL', 'Title', 'Priority Score', 'Decay Score', 'Status', 'Traffic (30d)',
+    'Traffic Trend', 'Last Updated', 'Days Since Update', 'AI Citation Likely',
+    'Word Count', 'Workflow Status', 'Keywords Count', 'Total Volume',
+    'Top Keyword', 'Top Position', 'Recommendations'
+  ];
+
+  const rows = pages.map(p => [
+    p.url,
+    p.title || '',
+    p.priorityScore,
+    p.decayScore,
+    p.triageStatus,
+    p.clicks30d,
+    p.trafficTrend,
+    format(new Date(p.lastUpdated), 'yyyy-MM-dd'),
+    p.daysSinceUpdate,
+    p.aiCitationLikely ? 'Yes' : 'No',
+    p.wordCount,
+    p.workflowStatus || '',
+    p.semrushKeywords ?? '',
+    p.semrushVolume ?? '',
+    p.semrushTopKeyword ?? '',
+    p.semrushTopPosition ?? '',
+    (p.refreshRecommendations || []).join(' | '),
+  ]);
+
+  const csv = [
+    headers.map(h => escapeCsvField(h)).join(','),
+    ...rows.map(r => r.map(v => escapeCsvField(v)).join(','))
+  ].join('\n');
+
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `content-freshness-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 interface DataTableProps {
   pages: PageFreshness[];
   contentType: ContentType;
@@ -58,7 +146,8 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [expandedKeywords, setExpandedKeywords] = useState<Set<number>>(new Set());
   const [expandedRecs, setExpandedRecs] = useState<Set<number>>(new Set());
-  const { deletePage } = useDashboardMutations();
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const { deletePage, batchStatus } = useDashboardMutations();
 
   const toggleKeywords = (pageId: number) => {
     setExpandedKeywords(prev => {
@@ -147,6 +236,47 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
   const pagedResults = filteredPages.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery, dateFilter, contentType, sortField, sortDir]);
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    const pageIds = pagedResults.map(p => p.id);
+    const allSelected = pageIds.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        pageIds.forEach(id => next.delete(id));
+      } else {
+        pageIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  }, [pagedResults, selectedIds]);
+
+  const selectAllFiltered = useCallback(() => {
+    setSelectedIds(new Set(filteredPages.map(p => p.id)));
+  }, [filteredPages]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBatchStatus = useCallback((status: string | null) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    batchStatus.mutate({ data: { ids, status } });
+    setSelectedIds(new Set());
+  }, [selectedIds, batchStatus]);
+
+  const pageIds = pagedResults.map(p => p.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id));
+  const somePageSelected = pageIds.some(id => selectedIds.has(id));
 
   const tabs: { id: PageFreshnessTriageStatus | 'all', label: string, count: number, color?: string }[] = [
     { id: 'all', label: 'All Pages', count: pages.length },
@@ -249,9 +379,86 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                 className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               />
             </div>
+
+            <button
+              onClick={() => exportToCsv(filteredPages)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-black/40 border border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all shrink-0"
+              title="Export filtered view as CSV"
+            >
+              <Download size={14} />
+              <span className="hidden md:inline">Export</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Selection Action Bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -10, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-primary">
+                  {selectedIds.size} page{selectedIds.size > 1 ? 's' : ''} selected
+                </span>
+                {selectedIds.size < filteredPages.length && (
+                  <button
+                    onClick={selectAllFiltered}
+                    className="text-xs text-primary/70 hover:text-primary underline"
+                  >
+                    Select all {filteredPages.length}
+                  </button>
+                )}
+                <button
+                  onClick={clearSelection}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground mr-1">Set status:</span>
+                <button
+                  onClick={() => handleBatchStatus('queued')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20 hover:bg-blue-500/25 transition-colors"
+                >
+                  <Clock size={12} /> Queued
+                </button>
+                <button
+                  onClick={() => handleBatchStatus('in_progress')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20 hover:bg-amber-500/25 transition-colors"
+                >
+                  <PlayCircle size={12} /> In Progress
+                </button>
+                <button
+                  onClick={() => handleBatchStatus('refreshed')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors"
+                >
+                  <CheckCircle2 size={12} /> Refreshed
+                </button>
+                <button
+                  onClick={() => handleBatchStatus(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <XCircle size={12} /> Clear Status
+                </button>
+                <div className="w-px h-5 bg-white/10 mx-1" />
+                <button
+                  onClick={() => exportToCsv(filteredPages.filter(p => selectedIds.has(p.id)))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <Download size={12} /> Export Selected
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Table Container */}
       <div className="glass-panel rounded-2xl overflow-hidden">
@@ -259,6 +466,17 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-black/20 text-xs uppercase tracking-wider text-muted-foreground">
+                <th className="p-4 w-10">
+                  <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground transition-colors">
+                    {allPageSelected ? (
+                      <CheckSquare size={16} className="text-primary" />
+                    ) : somePageSelected ? (
+                      <MinusSquare size={16} className="text-primary/60" />
+                    ) : (
+                      <Square size={16} />
+                    )}
+                  </button>
+                </th>
                 <th className="p-4 font-medium">
                   <button onClick={() => handleSort('title')} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
                     Page URL <SortIcon field="title" />
@@ -314,19 +532,35 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                       transition={{ duration: 0.2, delay: i * 0.03 }}
                       className={cn(
                         "group hover:bg-white/[0.02] transition-colors",
-                        page.triageStatus === 'critical' && "bg-destructive/[0.02] hover:bg-destructive/[0.04]"
+                        page.triageStatus === 'critical' && "bg-destructive/[0.02] hover:bg-destructive/[0.04]",
+                        selectedIds.has(page.id) && "bg-primary/[0.04]"
                       )}
                     >
+                      <td className="p-4 w-10">
+                        <button
+                          onClick={() => toggleSelect(page.id)}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {selectedIds.has(page.id) ? (
+                            <CheckSquare size={16} className="text-primary" />
+                          ) : (
+                            <Square size={16} />
+                          )}
+                        </button>
+                      </td>
                       <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="text-foreground font-medium text-sm truncate max-w-[250px]" title={page.title || page.url}>
-                            {page.title || 'Untitled Page'}
-                          </span>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-foreground font-medium text-sm truncate max-w-[220px]" title={page.title || page.url}>
+                              {page.title || 'Untitled Page'}
+                            </span>
+                            {getWorkflowBadge(page.workflowStatus)}
+                          </div>
                           <a
                             href={page.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-muted-foreground text-xs hover:text-primary transition-colors flex items-center gap-1 mt-0.5 truncate max-w-[250px]"
+                            className="text-muted-foreground text-xs hover:text-primary transition-colors flex items-center gap-1 truncate max-w-[220px]"
                           >
                             {page.url.replace(/^https?:\/\//, '')}
                             <ExternalLink size={10} />
@@ -487,7 +721,7 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                           transition={{ duration: 0.2 }}
                           className="bg-amber-500/[0.03] border-b border-amber-500/10"
                         >
-                          <td colSpan={9} className="px-6 py-3">
+                          <td colSpan={10} className="px-6 py-3">
                             <div className="flex items-start gap-3">
                               <div className="flex items-center gap-2 shrink-0 pt-0.5">
                                 <Lightbulb size={14} className="text-amber-400" />
@@ -510,7 +744,7 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                   ))
                 ) : (
                   <tr className="border-none">
-                    <td colSpan={9} className="p-12 text-center">
+                    <td colSpan={10} className="p-12 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <Filter size={32} className="mb-3 opacity-20" />
                         <p className="text-lg font-medium text-foreground">No pages found</p>

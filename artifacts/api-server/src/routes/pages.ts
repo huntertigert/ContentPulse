@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, pagesTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import {
   CreatePageBody,
   UploadCsvBody,
@@ -389,6 +389,44 @@ router.post("/upload-semrush-csv", async (req, res) => {
   } catch (err) {
     console.error("Error uploading SEMrush CSV:", err);
     res.status(400).json({ error: "Invalid input" });
+  }
+});
+
+// PATCH /pages/batch-status
+router.patch("/batch-status", async (req, res) => {
+  try {
+    const { ids, status } = req.body as { ids: unknown; status: unknown };
+
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 500) {
+      res.status(400).json({ error: "ids must be a non-empty array with at most 500 items" });
+      return;
+    }
+
+    const validIds = ids.filter((id): id is number =>
+      typeof id === 'number' && Number.isInteger(id) && id > 0
+    );
+    if (validIds.length !== ids.length) {
+      res.status(400).json({ error: "All ids must be positive integers" });
+      return;
+    }
+
+    const uniqueIds = [...new Set(validIds)];
+
+    const validStatuses = [null, "queued", "in_progress", "refreshed"];
+    if (!validStatuses.includes(status as string | null)) {
+      res.status(400).json({ error: `status must be one of: ${validStatuses.join(", ")}` });
+      return;
+    }
+
+    const result = await db.update(pagesTable)
+      .set({ workflowStatus: status as string | null })
+      .where(inArray(pagesTable.id, uniqueIds))
+      .returning({ id: pagesTable.id });
+
+    res.json({ updated: result.length, status });
+  } catch (err) {
+    console.error("Error updating batch status:", err);
+    res.status(500).json({ error: "Failed to update status" });
   }
 });
 

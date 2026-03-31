@@ -5,6 +5,7 @@ import {
   useUploadCsv, 
   useUploadSemrushCsv,
   useDeletePage,
+  useBatchUpdateStatus,
   getGetPagesQueryKey,
   getGetStatsQueryKey
 } from "@workspace/api-client-react";
@@ -88,9 +89,35 @@ export function useDashboardMutations() {
     }
   });
 
+  const batchStatusMutation = useBatchUpdateStatus({
+    mutation: {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({ queryKey: getGetPagesQueryKey() });
+        const statusLabels: Record<string, string> = {
+          queued: "Queued for Refresh",
+          in_progress: "In Progress",
+          refreshed: "Refreshed",
+        };
+        const label = data.status ? statusLabels[data.status] || data.status : "Cleared";
+        toast({
+          title: "Status Updated",
+          description: `${data.updated} page${data.updated > 1 ? "s" : ""} marked as "${label}".`,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Update Failed",
+          description: "Could not update page status.",
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
   return {
     uploadCsv: uploadCsvMutation,
     uploadSemrushCsv: uploadSemrushCsvMutation,
-    deletePage: deletePageMutation
+    deletePage: deletePageMutation,
+    batchStatus: batchStatusMutation
   };
 }

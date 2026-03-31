@@ -51,6 +51,7 @@ export const GetPagesResponseItem = zod.object({
     .nullish(),
   priorityScore: zod.number(),
   refreshRecommendations: zod.array(zod.string()),
+  workflowStatus: zod.enum(["queued", "in_progress", "refreshed"]).nullish(),
 });
 export const GetPagesResponse = zod.array(GetPagesResponseItem);
 
@@ -92,6 +93,19 @@ export const UploadSemrushCsvResponse = zod.object({
   skipped: zod.number(),
   matched: zod.number(),
   errors: zod.array(zod.string()),
+});
+
+/**
+ * @summary Update workflow status for multiple pages
+ */
+export const BatchUpdateStatusBody = zod.object({
+  ids: zod.array(zod.number()),
+  status: zod.enum(["queued", "in_progress", "refreshed"]).nullable(),
+});
+
+export const BatchUpdateStatusResponse = zod.object({
+  updated: zod.number(),
+  status: zod.string().nullable(),
 });
 
 /**

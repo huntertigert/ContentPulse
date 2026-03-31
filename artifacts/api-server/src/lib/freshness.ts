@@ -28,6 +28,7 @@ export interface PageFreshnessData {
   semrushKeywordList: { keyword: string; position: number; volume: number; kd: number }[] | null;
   priorityScore: number;
   refreshRecommendations: string[];
+  workflowStatus: string | null;
 }
 
 export function calculateFreshness(page: Page): PageFreshnessData {
@@ -172,6 +173,7 @@ export function calculateFreshness(page: Page): PageFreshnessData {
     semrushKeywordList,
     priorityScore,
     refreshRecommendations,
+    workflowStatus: page.workflowStatus,
   };
 }
 

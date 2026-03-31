@@ -51,6 +51,9 @@ artifacts-monorepo/
 - **Data Table**: Page URL, Traffic (30d), Last Updated, Priority Score, Decay Score, Triage Status, AI Citation, Keywords (SEMrush)
 - **Priority Score**: Weighted composite (decay 35%, traffic value 15%, traffic decline 10%, keyword value 20%, AI citation 8%, content depth 6%) — single number telling content managers what to work on first
 - **Refresh Recommendations**: Per-page actionable items (expand via lightbulb icon) — specific advice based on content age, traffic drop %, word count, keyword positions, AI citation risk
+- **Batch Actions**: Multi-select pages with checkboxes, floating action bar to assign workflow status (Queued, In Progress, Refreshed, Clear Status), export selected as CSV
+- **CSV Export**: Export current filtered/sorted view as CSV with all metrics, keywords, and recommendations
+- **Workflow Status**: Per-page tracking badges (Queued/In Progress/Refreshed) shown inline next to page title
 - **Triage Tabs**: All / Critical Refresh / Needs Review / Healthy
 - **CSV Upload**: Import pages from CSV (url, title, lastUpdated, clicks30d, clicksPrev30d, wordCount, excerpt) — supports GSC, WordPress, GA, SEMrush, Manual tabs
 - **SEMrush Integration**: Upload SEMrush Organic Positions CSV to enrich pages with keyword count, top keyword, best position, total search volume, and avg keyword difficulty

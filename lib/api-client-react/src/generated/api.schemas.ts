@@ -34,6 +34,16 @@ export type PageFreshnessSemrushKeywordListItem = {
   kd: number;
 };
 
+export type PageFreshnessWorkflowStatus =
+  | (typeof PageFreshnessWorkflowStatus)[keyof typeof PageFreshnessWorkflowStatus]
+  | null;
+
+export const PageFreshnessWorkflowStatus = {
+  queued: "queued",
+  in_progress: "in_progress",
+  refreshed: "refreshed",
+} as const;
+
 export interface PageFreshness {
   id: number;
   url: string;
@@ -59,6 +69,7 @@ export interface PageFreshness {
   semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
   priorityScore: number;
   refreshRecommendations: string[];
+  workflowStatus?: PageFreshnessWorkflowStatus;
 }
 
 export interface CreatePageInput {
@@ -122,6 +133,26 @@ export interface SyncStatus {
   lastGscSync?: string;
   sitemapConfigured: boolean;
   gscConfigured: boolean;
+}
+
+export type BatchStatusInputStatus =
+  | (typeof BatchStatusInputStatus)[keyof typeof BatchStatusInputStatus]
+  | null;
+
+export const BatchStatusInputStatus = {
+  queued: "queued",
+  in_progress: "in_progress",
+  refreshed: "refreshed",
+} as const;
+
+export interface BatchStatusInput {
+  ids: number[];
+  status: BatchStatusInputStatus;
+}
+
+export interface BatchStatusResult {
+  updated: number;
+  status: string | null;
 }
 
 export interface SemrushUploadResult {

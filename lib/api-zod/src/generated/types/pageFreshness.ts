@@ -8,6 +8,7 @@
 import type { PageFreshnessSemrushKeywordListItem } from "./pageFreshnessSemrushKeywordListItem";
 import type { PageFreshnessTrafficTrend } from "./pageFreshnessTrafficTrend";
 import type { PageFreshnessTriageStatus } from "./pageFreshnessTriageStatus";
+import type { PageFreshnessWorkflowStatus } from "./pageFreshnessWorkflowStatus";
 
 export interface PageFreshness {
   id: number;
@@ -34,4 +35,5 @@ export interface PageFreshness {
   semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
   priorityScore: number;
   refreshRecommendations: string[];
+  workflowStatus?: PageFreshnessWorkflowStatus;
 }

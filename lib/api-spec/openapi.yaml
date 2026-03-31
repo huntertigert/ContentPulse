@@ -95,6 +95,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SemrushUploadResult"
+  /pages/batch-status:
+    patch:
+      operationId: batchUpdateStatus
+      tags: [pages]
+      summary: Update workflow status for multiple pages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchStatusInput"
+      responses:
+        "200":
+          description: Update result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchStatusResult"
   /pages/{id}:
     delete:
       operationId: deletePage
@@ -290,6 +308,10 @@ components:
           type: array
           items:
             type: string
+        workflowStatus:
+          type: string
+          nullable: true
+          enum: [queued, in_progress, refreshed]
       required:
         - id
         - url
@@ -431,6 +453,27 @@ components:
         gscConfigured:
           type: boolean
       required: [sitemapConfigured, gscConfigured]
+    BatchStatusInput:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+          nullable: true
+          enum: [queued, in_progress, refreshed]
+      required: [ids, status]
+    BatchStatusResult:
+      type: object
+      properties:
+        updated:
+          type: integer
+        status:
+          type: string
+          nullable: true
+      required: [updated, status]
     SemrushUploadResult:
       type: object
       properties:
