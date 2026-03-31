@@ -1,0 +1,31 @@
+kind = "slides"
+previewPath = "/dashboard-deck/"
+title = "Dashboard Showcase Deck"
+version = "1.0.0"
+id = "artifacts/dashboard-deck"
+router = "path"
+
+[[integratedSkills]]
+name = "slides"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/dashboard-deck/" ]
+localPort = 19998
+
+[services.development]
+run = "pnpm --filter @workspace/dashboard-deck run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dashboard-deck", "run", "build" ]
+publicDir = "artifacts/dashboard-deck/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19998"
+BASE_PATH = "/dashboard-deck/"

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "a1b2c3d4-1111-4aaa-bbbb-000000000001",
+    "position": 1,
+    "filepath": "src/pages/slides/TitleSlide.tsx",
+    "title": "Content Freshness Dashboard",
+    "description": "Title slide introducing the Content Freshness Dashboard for SEO and AI Search.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-2222-4aaa-bbbb-000000000002",
+    "position": 2,
+    "filepath": "src/pages/slides/ProblemSlide.tsx",
+    "title": "The Problem",
+    "description": "Content decay and the urgency created by AI search.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-3333-4aaa-bbbb-000000000003",
+    "position": 3,
+    "filepath": "src/pages/slides/OverviewSlide.tsx",
+    "title": "Dashboard Overview",
+    "description": "Full dashboard screenshot showing stats, freshness loop, and data table.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-4444-4aaa-bbbb-000000000004",
+    "position": 4,
+    "filepath": "src/pages/slides/FeaturesSlide.tsx",
+    "title": "Key Capabilities",
+    "description": "Six core features: Priority Score, AI Citation, Freshness Loop, Triage, Keywords, Recommendations.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-5555-4aaa-bbbb-000000000005",
+    "position": 5,
+    "filepath": "src/pages/slides/WorkflowSlide.tsx",
+    "title": "From Data to Action",
+    "description": "Four-step workflow: Import, Analyze, Triage, Execute with batch actions.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-6666-4aaa-bbbb-000000000006",
+    "position": 6,
+    "filepath": "src/pages/slides/DataSlide.tsx",
+    "title": "Data Sources & Scoring",
+    "description": "Data integrations (GSC, SEMrush, CSV, Sitemap) and priority score formula breakdown.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-7777-4aaa-bbbb-000000000007",
+    "position": 7,
+    "filepath": "src/pages/slides/ClosingSlide.tsx",
+    "title": "Take Control",
+    "description": "Closing slide with key value propositions.",
+    "speakerNotes": ""
+  }
+]
