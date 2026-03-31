@@ -48,7 +48,9 @@ artifacts-monorepo/
 ### Content Freshness Dashboard (`artifacts/freshness-dashboard`)
 - **Freshness Loop** progress bar showing % of site under 90 days old
 - **Stats cards**: Total Pages, Critical Refresh, Healthy, AI Citation Ready
-- **Data Table**: Page URL, Traffic (30d), Last Updated, Freshness Score, Decay Score, Triage Status, AI Citation, Keywords (SEMrush)
+- **Data Table**: Page URL, Traffic (30d), Last Updated, Priority Score, Decay Score, Triage Status, AI Citation, Keywords (SEMrush)
+- **Priority Score**: Weighted composite (decay 35%, traffic value 15%, traffic decline 10%, keyword value 20%, AI citation 8%, content depth 6%) — single number telling content managers what to work on first
+- **Refresh Recommendations**: Per-page actionable items (expand via lightbulb icon) — specific advice based on content age, traffic drop %, word count, keyword positions, AI citation risk
 - **Triage Tabs**: All / Critical Refresh / Needs Review / Healthy
 - **CSV Upload**: Import pages from CSV (url, title, lastUpdated, clicks30d, clicksPrev30d, wordCount, excerpt) — supports GSC, WordPress, GA, SEMrush, Manual tabs
 - **SEMrush Integration**: Upload SEMrush Organic Positions CSV to enrich pages with keyword count, top keyword, best position, total search volume, and avg keyword difficulty

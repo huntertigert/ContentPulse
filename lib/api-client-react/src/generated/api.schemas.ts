@@ -57,6 +57,8 @@ export interface PageFreshness {
   semrushVolume?: number | null;
   semrushKd?: number | null;
   semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
+  priorityScore: number;
+  refreshRecommendations: string[];
 }
 
 export interface CreatePageInput {

@@ -49,6 +49,8 @@ export const GetPagesResponseItem = zod.object({
       }),
     )
     .nullish(),
+  priorityScore: zod.number(),
+  refreshRecommendations: zod.array(zod.string()),
 });
 export const GetPagesResponse = zod.array(GetPagesResponseItem);
 

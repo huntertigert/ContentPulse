@@ -19,6 +19,8 @@ import {
   ArrowDown,
   Calendar,
   TrendingUp,
+  Lightbulb,
+  Zap,
 } from 'lucide-react';
 import { PageFreshness, PageFreshnessTriageStatus } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
@@ -26,7 +28,7 @@ import { useDashboardMutations } from '@/hooks/use-dashboard';
 
 const PAGE_SIZE = 12;
 
-type SortField = 'title' | 'clicks30d' | 'lastUpdated' | 'freshnessScore' | 'decayScore' | 'triageStatus' | 'aiCitationLikely' | 'semrushVolume';
+type SortField = 'title' | 'clicks30d' | 'lastUpdated' | 'freshnessScore' | 'decayScore' | 'triageStatus' | 'aiCitationLikely' | 'semrushVolume' | 'priorityScore';
 type SortDir = 'asc' | 'desc';
 type DateFilter = 'all' | '1m' | '3m' | '6m' | '1y' | '1.5y' | '2y';
 export type ContentType = 'all' | 'blog' | 'news' | 'blog+news';
@@ -51,10 +53,11 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
   const [activeTab, setActiveTab] = useState<PageFreshnessTriageStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<SortField>('decayScore');
+  const [sortField, setSortField] = useState<SortField>('priorityScore');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [expandedKeywords, setExpandedKeywords] = useState<Set<number>>(new Set());
+  const [expandedRecs, setExpandedRecs] = useState<Set<number>>(new Set());
   const { deletePage } = useDashboardMutations();
 
   const toggleKeywords = (pageId: number) => {
@@ -131,6 +134,9 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
             break;
           case 'semrushVolume':
             cmp = (a.semrushVolume ?? 0) - (b.semrushVolume ?? 0);
+            break;
+          case 'priorityScore':
+            cmp = a.priorityScore - b.priorityScore;
             break;
         }
         return sortDir === 'asc' ? cmp : -cmp;
@@ -269,8 +275,8 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                   </button>
                 </th>
                 <th className="p-4 font-medium text-center">
-                  <button onClick={() => handleSort('freshnessScore')} className="flex items-center gap-1.5 mx-auto hover:text-foreground transition-colors">
-                    Freshness <SortIcon field="freshnessScore" />
+                  <button onClick={() => handleSort('priorityScore')} className="flex items-center gap-1.5 mx-auto hover:text-foreground transition-colors">
+                    Priority <SortIcon field="priorityScore" />
                   </button>
                 </th>
                 <th className="p-4 font-medium text-center">
@@ -300,8 +306,8 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
               <AnimatePresence>
                 {pagedResults.length > 0 ? (
                   pagedResults.map((page, i) => (
+                    <React.Fragment key={page.id}>
                     <motion.tr
-                      key={page.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
@@ -340,16 +346,32 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col items-center gap-1">
-                          <div className="w-16 h-1.5 bg-black/50 rounded-full overflow-hidden">
+                          <div className="flex items-center gap-1.5">
+                            <Zap size={12} className={cn(
+                              page.priorityScore >= 60 ? "text-destructive" :
+                              page.priorityScore >= 35 ? "text-warning" :
+                              "text-success"
+                            )} />
+                            <span className={cn(
+                              "text-sm font-display font-bold",
+                              page.priorityScore >= 60 ? "text-destructive" :
+                              page.priorityScore >= 35 ? "text-warning" :
+                              "text-foreground"
+                            )}>
+                              {page.priorityScore}
+                            </span>
+                          </div>
+                          <div className="w-14 h-1 bg-black/50 rounded-full overflow-hidden">
                             <div
                               className={cn(
-                                "h-full rounded-full",
-                                page.freshnessScore > 70 ? "bg-success" : page.freshnessScore > 40 ? "bg-warning" : "bg-destructive"
+                                "h-full rounded-full transition-all",
+                                page.priorityScore >= 60 ? "bg-destructive" :
+                                page.priorityScore >= 35 ? "bg-warning" :
+                                "bg-success"
                               )}
-                              style={{ width: `${page.freshnessScore}%` }}
+                              style={{ width: `${page.priorityScore}%` }}
                             />
                           </div>
-                          <span className="text-xs font-mono text-muted-foreground">{Math.round(page.freshnessScore)}</span>
                         </div>
                       </td>
                       <td className="p-4 text-center">
@@ -426,15 +448,65 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => deletePage.mutate({ id: page.id })}
-                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                          title="Remove from tracking"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => {
+                              setExpandedRecs(prev => {
+                                const next = new Set(prev);
+                                if (next.has(page.id)) next.delete(page.id); else next.add(page.id);
+                                return next;
+                              });
+                            }}
+                            className={cn(
+                              "p-2 rounded-lg transition-colors",
+                              expandedRecs.has(page.id)
+                                ? "text-amber-400 bg-amber-400/10"
+                                : "text-muted-foreground hover:text-amber-400 hover:bg-amber-400/10 opacity-0 group-hover:opacity-100"
+                            )}
+                            title="View recommendations"
+                          >
+                            <Lightbulb size={16} />
+                          </button>
+                          <button
+                            onClick={() => deletePage.mutate({ id: page.id })}
+                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Remove from tracking"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
+                    <AnimatePresence>
+                      {expandedRecs.has(page.id) && page.refreshRecommendations.length > 0 && (
+                        <motion.tr
+                          key={`recs-${page.id}`}
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="bg-amber-500/[0.03] border-b border-amber-500/10"
+                        >
+                          <td colSpan={9} className="px-6 py-3">
+                            <div className="flex items-start gap-3">
+                              <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                                <Lightbulb size={14} className="text-amber-400" />
+                                <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Action Items</span>
+                              </div>
+                              <div className="flex flex-col gap-1.5 flex-1">
+                                {page.refreshRecommendations.map((rec, idx) => (
+                                  <div key={idx} className="flex items-start gap-2 text-sm">
+                                    <span className="text-amber-400/60 shrink-0 font-mono text-xs mt-0.5">{idx + 1}.</span>
+                                    <span className="text-foreground/80">{rec}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      )}
+                    </AnimatePresence>
+                    </React.Fragment>
                   ))
                 ) : (
                   <tr className="border-none">

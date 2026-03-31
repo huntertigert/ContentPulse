@@ -284,6 +284,12 @@ components:
               kd:
                 type: number
             required: [keyword, position, volume, kd]
+        priorityScore:
+          type: number
+        refreshRecommendations:
+          type: array
+          items:
+            type: string
       required:
         - id
         - url
@@ -298,6 +304,8 @@ components:
         - daysSinceUpdate
         - trafficTrend
         - createdAt
+        - priorityScore
+        - refreshRecommendations
     CreatePageInput:
       type: object
       properties:
