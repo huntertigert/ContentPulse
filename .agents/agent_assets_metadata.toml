@@ -1,8 +1,19 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "7iPiYsiJhxlU6pXadfhXs"
 uri = "file://artifacts/dashboard-deck/public/hero-bg.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "H7rnKKAydZ4PUnNwlpCVZ"
+uri = "file://.local/outputs/Content-Freshness-Dashboard.pdf"
+type = "pdf"
+title = "Content Freshness Dashboard.pdf"
+
+[[outputs]]
+id = "NrrywYBwtWrVSfoVWlOAu"
+uri = "file://.local/outputs/Content-Freshness-Dashboard.pptx"
+type = "slides"
+title = "Content Freshness Dashboard.pptx"
