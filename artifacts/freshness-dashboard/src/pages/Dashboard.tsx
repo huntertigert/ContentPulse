@@ -90,12 +90,12 @@ export default function Dashboard() {
             <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground/70">
               <div className="flex items-center gap-1.5">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[9px] font-bold shrink-0">1</span>
-                <span>Click <span className="text-foreground/80 font-medium">Import CSV</span></span>
+                <span>Set up <span className="text-foreground/80 font-medium">Connected</span> with your sitemap + GSC URL</span>
               </div>
               <div className="w-4 h-px bg-white/10" />
               <div className="flex items-center gap-1.5">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[9px] font-bold shrink-0">2</span>
-                <span>Choose a format (GSC, WordPress, SEMrush)</span>
+                <span>Click <span className="text-foreground/80 font-medium">Import CSV</span> or <span className="text-foreground/80 font-medium">Sync Now</span></span>
               </div>
               <div className="w-4 h-px bg-white/10" />
               <div className="flex items-center gap-1.5">
