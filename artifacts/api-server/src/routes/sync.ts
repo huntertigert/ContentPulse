@@ -83,15 +83,25 @@ async function scrapePageMeta(url: string): Promise<PageMeta> {
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { title: null, excerpt: null, wordCount: 0 };
-    const html = await res.text();
 
-    // Extract <title>
+    const reader = res.body?.getReader();
+    if (!reader) return { title: null, excerpt: null, wordCount: 0 };
+
+    const decoder = new TextDecoder();
+    let html = "";
+    const MAX_BYTES = 200_000;
+
+    while (html.length < MAX_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+    }
+    reader.cancel().catch(() => {});
+
     const titleMatch = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
     let title = titleMatch ? titleMatch[1].trim() : null;
-    // Strip site suffix like " | Company Name"
     if (title) title = title.split(/\s*[|\-–—]\s*/)[0].trim() || title;
 
-    // Strip scripts, styles, nav, header, footer, aside to get main body text
     const bodyText = html
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -105,7 +115,6 @@ async function scrapePageMeta(url: string): Promise<PageMeta> {
       .trim();
 
     const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
-    // Take first ~400 chars of body as excerpt
     const excerpt = bodyText.length > 50 ? bodyText.slice(0, 400) : null;
 
     return { title, excerpt, wordCount };
@@ -296,45 +305,48 @@ router.post("/sitemap", async (_req, res) => {
       rows.push({ url, lastUpdated });
     }
 
-    // Step 1: Scrape HTML metadata (title, excerpt, word count) in parallel batches
-    console.log(`Scraping metadata for ${rows.length} pages...`);
-    const metaResults = await batchProcess(
-      rows,
-      (row) => scrapePageMeta(row.url),
-      { concurrency: 8, retries: 1 },
-    );
-
-    // Step 2: Score AI citation likelihood in parallel batches
-    console.log(`Scoring AI citation for ${rows.length} pages...`);
-    const citationResults = await batchProcess(
-      rows.map((row, i) => ({ row, meta: metaResults[i]! })),
-      ({ row, meta }) =>
-        scoreAiCitation(row.url, meta.title, meta.wordCount, meta.excerpt),
-      { concurrency: 5, retries: 3 },
-    );
-
-    // Step 3: Replace all existing pages
     await db.delete(pagesTable);
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]!;
-      const meta = metaResults[i] ?? { title: null, excerpt: null, wordCount: 0 };
-      const citation = citationResults[i] ?? { score: 50, reason: "" };
-      try {
-        await db.insert(pagesTable).values({
-          url: row.url,
-          title: meta.title,
-          lastUpdated: row.lastUpdated,
-          clicks30d: 0,
-          clicksPrev30d: 0,
-          wordCount: meta.wordCount,
-          excerpt: meta.excerpt,
-          aiCitationScore: citation.score,
-          aiCitationReason: citation.reason,
-        });
-        upserted++;
-      } catch (rowErr) {
-        errors.push(`Error inserting ${row.url}: ${String(rowErr)}`);
+    const CHUNK_SIZE = 50;
+    console.log(`Processing ${rows.length} pages in chunks of ${CHUNK_SIZE}...`);
+
+    for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
+      const chunk = rows.slice(start, start + CHUNK_SIZE);
+      console.log(`  Chunk ${Math.floor(start / CHUNK_SIZE) + 1}: pages ${start + 1}-${start + chunk.length}`);
+
+      const metaResults = await batchProcess(
+        chunk,
+        (row) => scrapePageMeta(row.url),
+        { concurrency: 3, retries: 1 },
+      );
+
+      const citationResults = await batchProcess(
+        chunk.map((row, i) => ({ row, meta: metaResults[i]! })),
+        ({ row, meta }) =>
+          scoreAiCitation(row.url, meta.title, meta.wordCount, meta.excerpt),
+        { concurrency: 3, retries: 2 },
+      );
+
+      for (let i = 0; i < chunk.length; i++) {
+        const row = chunk[i]!;
+        const meta = metaResults[i] ?? { title: null, excerpt: null, wordCount: 0 };
+        const citation = citationResults[i] ?? { score: 50, reason: "" };
+        try {
+          await db.insert(pagesTable).values({
+            url: row.url,
+            title: meta.title,
+            lastUpdated: row.lastUpdated,
+            clicks30d: 0,
+            clicksPrev30d: 0,
+            wordCount: meta.wordCount,
+            excerpt: meta.excerpt,
+            aiCitationScore: citation.score,
+            aiCitationReason: citation.reason,
+          });
+          upserted++;
+        } catch (rowErr) {
+          errors.push(`Error inserting ${row.url}: ${String(rowErr)}`);
+        }
       }
     }
 
@@ -496,25 +508,28 @@ router.post("/rescore-ai", async (req, res) => {
     const label = days ? `${filter} (${allPages.length} pages)` : `all (${allPages.length} pages)`;
     console.log(`Re-scoring AI citations for ${label}...`);
 
-    const results = await batchProcess(
-      allPages,
-      async (page) => {
-        const result = await scoreAiCitation(
-          page.url,
-          page.title,
-          page.wordCount,
-          page.excerpt,
-        );
-        await db
-          .update(pagesTable)
-          .set({ aiCitationScore: result.score, aiCitationReason: result.reason })
-          .where(eq(pagesTable.id, page.id));
-        return result;
-      },
-      { concurrency: 3, retries: 3 },
-    );
-
-    updated = results.filter(Boolean).length;
+    const CHUNK_SIZE = 50;
+    for (let start = 0; start < allPages.length; start += CHUNK_SIZE) {
+      const chunk = allPages.slice(start, start + CHUNK_SIZE);
+      const results = await batchProcess(
+        chunk,
+        async (page) => {
+          const result = await scoreAiCitation(
+            page.url,
+            page.title,
+            page.wordCount,
+            page.excerpt,
+          );
+          await db
+            .update(pagesTable)
+            .set({ aiCitationScore: result.score, aiCitationReason: result.reason })
+            .where(eq(pagesTable.id, page.id));
+          return result;
+        },
+        { concurrency: 3, retries: 2 },
+      );
+      updated += results.filter(Boolean).length;
+    }
 
     res.json({
       success: true,
@@ -563,34 +578,37 @@ router.post("/fix-titles", async (_req, res) => {
 
     console.log(`Fixing titles for ${allUntitled.length} pages...`);
 
-    const results = await batchProcess(
-      allUntitled,
-      async (page) => {
-        let url = page.url;
-        if (!url.startsWith("http") && origin) {
-          url = url.startsWith("/") ? origin + url : origin + "/" + url;
-        }
-
-        const needsUrlFix = url !== page.url;
-        const meta = await scrapePageMeta(url);
-
-        if (meta.title || needsUrlFix || meta.wordCount > 0) {
-          const updates: Record<string, any> = {};
-          if (needsUrlFix) updates.url = url;
-          if (meta.title) updates.title = meta.title;
-          if (meta.wordCount > 0) updates.wordCount = meta.wordCount;
-          if (meta.excerpt) updates.excerpt = meta.excerpt;
-          if (Object.keys(updates).length > 0) {
-            await db.update(pagesTable).set(updates).where(eq(pagesTable.id, page.id));
-            return true;
+    const CHUNK_SIZE = 50;
+    for (let start = 0; start < allUntitled.length; start += CHUNK_SIZE) {
+      const chunk = allUntitled.slice(start, start + CHUNK_SIZE);
+      const results = await batchProcess(
+        chunk,
+        async (page) => {
+          let url = page.url;
+          if (!url.startsWith("http") && origin) {
+            url = url.startsWith("/") ? origin + url : origin + "/" + url;
           }
-        }
-        return false;
-      },
-      { concurrency: 8, retries: 1 },
-    );
 
-    updated = results.filter(Boolean).length;
+          const needsUrlFix = url !== page.url;
+          const meta = await scrapePageMeta(url);
+
+          if (meta.title || needsUrlFix || meta.wordCount > 0) {
+            const updates: Record<string, any> = {};
+            if (needsUrlFix) updates.url = url;
+            if (meta.title) updates.title = meta.title;
+            if (meta.wordCount > 0) updates.wordCount = meta.wordCount;
+            if (meta.excerpt) updates.excerpt = meta.excerpt;
+            if (Object.keys(updates).length > 0) {
+              await db.update(pagesTable).set(updates).where(eq(pagesTable.id, page.id));
+              return true;
+            }
+          }
+          return false;
+        },
+        { concurrency: 3, retries: 1 },
+      );
+      updated += results.filter(Boolean).length;
+    }
     res.json({
       success: true,
       message: `Fixed titles for ${updated} of ${allUntitled.length} pages.`,
