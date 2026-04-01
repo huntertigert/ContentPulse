@@ -87,6 +87,20 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-2 text-lg max-w-xl">
               Monitor content decay, prioritize updates, and optimize your pages for AI Search Generation (GEO).
             </p>
+            <div className="mt-4 flex items-center gap-6 text-sm text-muted-foreground/70">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold shrink-0">1</span>
+                <span>Click <span className="text-foreground/80 font-medium">Import CSV</span> to upload your data</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold shrink-0">2</span>
+                <span>Choose a format (GSC, WordPress, SEMrush)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold shrink-0">3</span>
+                <span>Review scores and start triaging</span>
+              </div>
+            </div>
           </motion.div>
 
           <motion.div
