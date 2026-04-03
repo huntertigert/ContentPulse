@@ -11,6 +11,15 @@ pnpm workspace monorepo using TypeScript. Content Freshness Dashboard for SEO an
 - **Settings**: Key-value `settings` table in Postgres. Settings include `sitemapUrl`, `gscSiteUrl`, `gscServiceAccountJson`, `lastSitemapSync`, `lastGscSync`, `autoSyncEnabled`.
 - **Connect & Sync modal**: Header button opens a modal with form inputs, step-by-step GSC instructions, "Sync Now" buttons, and status badges showing last sync time.
 
+## Authentication
+
+- **Provider**: Clerk (auto-provisioned via Replit integration)
+- **Method**: Google OAuth + email sign-in
+- **Domain restriction**: Only `@alkami.com` and `@alkamitech.com` email addresses allowed
+- **Frontend**: Clerk `<SignIn>` component on `/sign-in` route; `<Show>` for auth gating; `DomainGate` component checks email domain client-side
+- **Backend**: `clerkMiddleware()` on Express; `requireAuth` middleware on `/api/pages`, `/api/settings`, `/api/sync` — validates session + checks email domain server-side
+- **Proxy**: `/__clerk` proxy path for production deployment
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
@@ -18,6 +27,7 @@ pnpm workspace monorepo using TypeScript. Content Freshness Dashboard for SEO an
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
 - **API framework**: Express 5
+- **Authentication**: Clerk (@clerk/express server, @clerk/react client)
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)

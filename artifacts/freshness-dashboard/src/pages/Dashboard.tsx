@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw, LogOut } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { useSettings, useSyncActions } from '@/hooks/use-sync';
 import { StatCard } from '@/components/StatCard';
@@ -14,6 +15,8 @@ export default function Dashboard() {
   const { pages, stats, isLoading } = useDashboardData();
   const { settings, syncStatus } = useSettings();
   const { syncSitemap, syncGsc } = useSyncActions();
+  const { user } = useUser();
+  const { signOut } = useClerk();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
@@ -142,6 +145,26 @@ export default function Dashboard() {
               <Plus size={18} />
               Import CSV
             </button>
+
+            {user && (
+              <div className="flex items-center gap-2 ml-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+                  {user.imageUrl && (
+                    <img src={user.imageUrl} alt="" className="w-6 h-6 rounded-full" />
+                  )}
+                  <span className="text-xs text-gray-400 max-w-[140px] truncate">
+                    {user.primaryEmailAddress?.emailAddress}
+                  </span>
+                </div>
+                <button
+                  onClick={() => signOut()}
+                  className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+                  title="Sign out"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            )}
           </motion.div>
         </header>
 
