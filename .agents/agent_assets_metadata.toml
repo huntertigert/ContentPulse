@@ -17,3 +17,9 @@ id = "NrrywYBwtWrVSfoVWlOAu"
 uri = "file://.local/outputs/Content-Freshness-Dashboard.pptx"
 type = "slides"
 title = "Content Freshness Dashboard.pptx"
+
+[[outputs]]
+id = "4YeWz_ylm99Mmj-umpdKv"
+uri = "file://content-freshness-dashboard.tar.gz"
+type = "unspecified"
+title = "Content Freshness Dashboard - Project Archive"
