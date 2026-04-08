@@ -30,46 +30,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const ALLOWED_DOMAINS = ["alkami.com", "alkamitech.com"];
-
-function DomainGate({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  const email = user?.primaryEmailAddress?.emailAddress;
-  const domain = email?.split("@")[1]?.toLowerCase();
-  const allowed = domain && ALLOWED_DOMAINS.includes(domain);
-
-  if (!allowed) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="bg-gray-900 border border-red-500/30 rounded-xl p-8 max-w-md text-center">
-          <div className="text-red-400 text-4xl mb-4">⛔</div>
-          <h2 className="text-xl font-bold text-white mb-2">Access Restricted</h2>
-          <p className="text-gray-400 mb-4">
-            This dashboard is only available to <span className="text-white font-medium">@alkami.com</span> and{" "}
-            <span className="text-white font-medium">@alkamitech.com</span> email addresses.
-          </p>
-          {email && (
-            <p className="text-gray-500 text-sm">
-              Signed in as: <span className="text-gray-400">{email}</span>
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
-
 function SignInPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-6">
@@ -105,9 +65,7 @@ function HomeRoute() {
   return (
     <>
       <Show when="signed-in">
-        <DomainGate>
           <Dashboard />
-        </DomainGate>
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
