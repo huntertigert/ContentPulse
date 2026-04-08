@@ -45,13 +45,13 @@ function DomainGate({ children }: { children: React.ReactNode }) {
 
   const email = user?.primaryEmailAddress?.emailAddress;
   const domain = email?.split("@")[1]?.toLowerCase();
-  const allowed = domain && ALLOWED_DOMAINS.includes(domain);
+  const allowed = !email || (domain && ALLOWED_DOMAINS.includes(domain));
 
   if (!allowed) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="bg-gray-900 border border-red-500/30 rounded-xl p-8 max-w-md text-center">
-          <div className="text-red-400 text-4xl mb-4">⛔</div>
+          <div className="text-red-400 text-4xl mb-4">&#9940;</div>
           <h2 className="text-xl font-bold text-white mb-2">Access Restricted</h2>
           <p className="text-gray-400 mb-4">
             This dashboard is only available to <span className="text-white font-medium">@alkami.com</span> and{" "}
