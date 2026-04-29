@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw, LogOut } from 'lucide-react';
+import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw, LogOut, Type } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/react';
+import { useQueryClient } from '@tanstack/react-query';
+import { getGetPagesQueryKey, getGetStatsQueryKey } from '@workspace/api-client-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { useSettings, useSyncActions } from '@/hooks/use-sync';
+import { useToast } from '@/hooks/use-toast';
 import { StatCard } from '@/components/StatCard';
 import { FreshnessLoop } from '@/components/FreshnessLoop';
 import { DataTable, filterByContentType, type ContentType } from '@/components/DataTable';
@@ -17,10 +20,37 @@ export default function Dashboard() {
   const { syncSitemap, syncGsc } = useSyncActions();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [contentType, setContentType] = useState<ContentType>('blog');
+  const [isFixingTitles, setIsFixingTitles] = useState(false);
+
+  const handleFixTitles = async () => {
+    setIsFixingTitles(true);
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/sync/fix-titles`, { method: 'POST' });
+      const data = await res.json();
+      toast({
+        title: data.success ? 'Titles Fixed' : 'Fix Titles Issue',
+        description: data.message,
+        variant: data.success ? 'default' : 'destructive',
+      });
+      queryClient.invalidateQueries({ queryKey: getGetPagesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetStatsQueryKey() });
+    } catch (err: any) {
+      toast({ title: 'Fix Titles Failed', description: err?.message || 'Network error', variant: 'destructive' });
+    } finally {
+      setIsFixingTitles(false);
+    }
+  };
+
+  const untitledCount = useMemo(
+    () => pages.filter(p => !p.title || p.title.trim() === '').length,
+    [pages]
+  );
 
   const filteredPages = useMemo(() => filterByContentType(pages, contentType), [pages, contentType]);
 
@@ -135,6 +165,18 @@ export default function Dashboard() {
               >
                 <RefreshCw size={15} className={cn(isSyncing && "animate-spin")} />
                 {isSyncing ? "Syncing..." : "Sync Now"}
+              </button>
+            )}
+
+            {untitledCount > 0 && (
+              <button
+                onClick={handleFixTitles}
+                disabled={isFixingTitles}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/15 transition-all disabled:opacity-50"
+                title={`${untitledCount} pages have no title. Click to scrape them.`}
+              >
+                <Type size={15} className={cn(isFixingTitles && "animate-pulse")} />
+                {isFixingTitles ? "Fixing..." : `Fix Titles (${untitledCount})`}
               </button>
             )}
 

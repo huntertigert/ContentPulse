@@ -98,9 +98,30 @@ async function scrapePageMeta(url: string): Promise<PageMeta> {
     }
     reader.cancel().catch(() => {});
 
-    const titleMatch = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
-    let title = titleMatch ? titleMatch[1].trim() : null;
-    if (title) title = title.split(/\s*[|\-–—]\s*/)[0].trim() || title;
+    const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
+    let title: string | null = null;
+    if (titleMatch) {
+      title = titleMatch[1]
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+        .replace(/\s+/g, " ")
+        .trim();
+      if (title) title = title.split(/\s*[|\-–—]\s*/)[0].trim() || title;
+    }
+    if (!title) {
+      const ogTitle = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html)
+        || /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i.exec(html);
+      if (ogTitle) title = ogTitle[1].trim();
+    }
+    if (!title) {
+      const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html);
+      if (h1) title = h1[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || null;
+    }
 
     const bodyText = html
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
