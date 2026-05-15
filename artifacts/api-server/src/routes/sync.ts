@@ -76,13 +76,31 @@ interface PageMeta {
   wordCount: number;
 }
 
+const BINARY_EXT_RE = /\.(png|jpe?g|gif|webp|svg|ico|bmp|tiff?|pdf|zip|gz|tar|mp[34]|wav|mov|avi|webm|woff2?|ttf|eot|otf|css|js|json|xml|csv|xls[xm]?|docx?|pptx?)(\?|#|$)/i;
+
+function sanitizeText(s: string | null): string | null {
+  if (!s) return null;
+  // Strip null bytes & other control chars Postgres rejects in text columns.
+  const cleaned = s.replace(/\u0000/g, "").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  return cleaned || null;
+}
+
 async function scrapePageMeta(url: string): Promise<PageMeta> {
   try {
+    if (BINARY_EXT_RE.test(url)) {
+      return { title: null, excerpt: null, wordCount: 0 };
+    }
+
     const res = await fetch(url, {
       headers: { "User-Agent": "ContentFreshnessDashboard/1.0" },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { title: null, excerpt: null, wordCount: 0 };
+
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+    if (contentType && !contentType.includes("html") && !contentType.includes("xml") && !contentType.includes("text/")) {
+      return { title: null, excerpt: null, wordCount: 0 };
+    }
 
     const reader = res.body?.getReader();
     if (!reader) return { title: null, excerpt: null, wordCount: 0 };
@@ -138,7 +156,11 @@ async function scrapePageMeta(url: string): Promise<PageMeta> {
     const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
     const excerpt = bodyText.length > 50 ? bodyText.slice(0, 400) : null;
 
-    return { title, excerpt, wordCount };
+    return {
+      title: sanitizeText(title),
+      excerpt: sanitizeText(excerpt),
+      wordCount,
+    };
   } catch {
     return { title: null, excerpt: null, wordCount: 0 };
   }
