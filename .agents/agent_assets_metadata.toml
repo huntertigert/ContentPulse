@@ -23,3 +23,9 @@ id = "4YeWz_ylm99Mmj-umpdKv"
 uri = "file://content-freshness-dashboard.tar.gz"
 type = "unspecified"
 title = "Content Freshness Dashboard - Project Archive"
+
+[[outputs]]
+id = "xsN8WuO2hM_WexOmuP6Kl"
+uri = "file://exports/ContentPulse-source.zip"
+type = "unspecified"
+title = "ContentPulse Source Code (44 MB)"
