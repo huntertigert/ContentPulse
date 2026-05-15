@@ -28,3 +28,9 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+DEFAULT_SITEMAP_URL = "https://www.alkami.com/post-sitemap.xml"
+DEFAULT_GSC_SITE_URL = "https://www.alkami.com"
