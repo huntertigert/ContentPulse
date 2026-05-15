@@ -332,7 +332,13 @@ export async function runSitemapSync(): Promise<SitemapSyncResult> {
 
   const sitemapOrigin = new URL(sitemapUrl).origin;
 
+  // Only track blog posts. Filters out news, resources, taxonomy pages,
+  // image assets, and other non-blog WordPress post types that the
+  // sitemap also lists.
+  const BLOG_PATH_RE = /\/blog\//i;
+
   const rows: Array<{ url: string; lastUpdated: Date }> = [];
+  let skippedNonBlog = 0;
   for (const entry of entries) {
     const lastUpdated = entry.lastmod ? new Date(entry.lastmod) : new Date();
     if (isNaN(lastUpdated.getTime())) {
@@ -345,8 +351,13 @@ export async function runSitemapSync(): Promise<SitemapSyncResult> {
     } else if (!url.startsWith("http")) {
       url = sitemapOrigin + "/" + url;
     }
+    if (!BLOG_PATH_RE.test(url)) {
+      skippedNonBlog++;
+      continue;
+    }
     rows.push({ url, lastUpdated });
   }
+  console.log(`[sitemap] ${rows.length} blog URLs kept, ${skippedNonBlog} non-blog URLs skipped.`);
 
   await db.delete(pagesTable);
 
