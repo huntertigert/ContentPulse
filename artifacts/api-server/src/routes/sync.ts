@@ -276,116 +276,123 @@ router.get("/status", async (_req, res) => {
   }
 });
 
-// POST /sync/sitemap
-router.post("/sitemap", async (_req, res) => {
+// Extracted so it can be invoked at startup (bootstrap) or from the route.
+export interface SitemapSyncResult {
+  success: boolean;
+  message: string;
+  upserted: number;
+  errors: string[];
+}
+
+export async function runSitemapSync(): Promise<SitemapSyncResult> {
   const errors: string[] = [];
   let upserted = 0;
 
+  const sitemapUrl = await getSetting("sitemapUrl");
+  if (!sitemapUrl) {
+    return {
+      success: false,
+      message: "No sitemap URL configured. Go to Settings to add your sitemap URL.",
+      upserted: 0,
+      errors: [],
+    };
+  }
+
+  const entries = await parseSitemap(sitemapUrl);
+  if (entries.length === 0) {
+    return {
+      success: false,
+      message: "No URLs found in sitemap. Check that the URL is a valid XML sitemap.",
+      upserted: 0,
+      errors: ["No URLs found in sitemap"],
+    };
+  }
+
+  const sitemapOrigin = new URL(sitemapUrl).origin;
+
+  const rows: Array<{ url: string; lastUpdated: Date }> = [];
+  for (const entry of entries) {
+    const lastUpdated = entry.lastmod ? new Date(entry.lastmod) : new Date();
+    if (isNaN(lastUpdated.getTime())) {
+      errors.push(`Skipped ${entry.url}: invalid date "${entry.lastmod}"`);
+      continue;
+    }
+    let url = entry.url;
+    if (url.startsWith("/")) {
+      url = sitemapOrigin + url;
+    } else if (!url.startsWith("http")) {
+      url = sitemapOrigin + "/" + url;
+    }
+    rows.push({ url, lastUpdated });
+  }
+
+  await db.delete(pagesTable);
+
+  const CHUNK_SIZE = 50;
+  console.log(`Processing ${rows.length} pages in chunks of ${CHUNK_SIZE}...`);
+
+  for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
+    const chunk = rows.slice(start, start + CHUNK_SIZE);
+    console.log(`  Chunk ${Math.floor(start / CHUNK_SIZE) + 1}: pages ${start + 1}-${start + chunk.length}`);
+
+    const metaResults = await batchProcess(
+      chunk,
+      (row) => scrapePageMeta(row.url),
+      { concurrency: 3, retries: 1 },
+    );
+
+    const citationResults = await batchProcess(
+      chunk.map((row, i) => ({ row, meta: metaResults[i]! })),
+      ({ row, meta }) =>
+        scoreAiCitation(row.url, meta.title, meta.wordCount, meta.excerpt),
+      { concurrency: 3, retries: 2 },
+    );
+
+    for (let i = 0; i < chunk.length; i++) {
+      const row = chunk[i]!;
+      const meta = metaResults[i] ?? { title: null, excerpt: null, wordCount: 0 };
+      const citation = citationResults[i] ?? { score: 50, reason: "" };
+      try {
+        await db.insert(pagesTable).values({
+          url: row.url,
+          title: meta.title,
+          lastUpdated: row.lastUpdated,
+          clicks30d: 0,
+          clicksPrev30d: 0,
+          wordCount: meta.wordCount,
+          excerpt: meta.excerpt,
+          aiCitationScore: citation.score,
+          aiCitationReason: citation.reason,
+        });
+        upserted++;
+      } catch (rowErr) {
+        errors.push(`Error inserting ${row.url}: ${String(rowErr)}`);
+      }
+    }
+  }
+
+  await setSetting("lastSitemapSync", new Date().toISOString());
+
+  return {
+    success: true,
+    message: `Sync complete — ${upserted} pages imported with titles and AI citation scores.`,
+    upserted,
+    errors: errors.slice(0, 10),
+  };
+}
+
+// POST /sync/sitemap
+router.post("/sitemap", async (_req, res) => {
   try {
-    const sitemapUrl = await getSetting("sitemapUrl");
-    if (!sitemapUrl) {
-      res.status(400).json({
-        success: false,
-        message: "No sitemap URL configured. Go to Settings to add your sitemap URL.",
-        upserted: 0,
-        updated: 0,
-        errors: [],
-      });
-      return;
-    }
-
-    const entries = await parseSitemap(sitemapUrl);
-    if (entries.length === 0) {
-      res.json({
-        success: false,
-        message: "No URLs found in sitemap. Check that the URL is a valid XML sitemap.",
-        upserted: 0,
-        updated: 0,
-        errors: ["No URLs found in sitemap"],
-      });
-      return;
-    }
-
-    // Resolve relative URLs against the sitemap origin
-    const sitemapOrigin = new URL(sitemapUrl).origin;
-
-    // Build valid rows
-    const rows: Array<{ url: string; lastUpdated: Date }> = [];
-    for (const entry of entries) {
-      const lastUpdated = entry.lastmod ? new Date(entry.lastmod) : new Date();
-      if (isNaN(lastUpdated.getTime())) {
-        errors.push(`Skipped ${entry.url}: invalid date "${entry.lastmod}"`);
-        continue;
-      }
-      let url = entry.url;
-      if (url.startsWith("/")) {
-        url = sitemapOrigin + url;
-      } else if (!url.startsWith("http")) {
-        url = sitemapOrigin + "/" + url;
-      }
-      rows.push({ url, lastUpdated });
-    }
-
-    await db.delete(pagesTable);
-
-    const CHUNK_SIZE = 50;
-    console.log(`Processing ${rows.length} pages in chunks of ${CHUNK_SIZE}...`);
-
-    for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
-      const chunk = rows.slice(start, start + CHUNK_SIZE);
-      console.log(`  Chunk ${Math.floor(start / CHUNK_SIZE) + 1}: pages ${start + 1}-${start + chunk.length}`);
-
-      const metaResults = await batchProcess(
-        chunk,
-        (row) => scrapePageMeta(row.url),
-        { concurrency: 3, retries: 1 },
-      );
-
-      const citationResults = await batchProcess(
-        chunk.map((row, i) => ({ row, meta: metaResults[i]! })),
-        ({ row, meta }) =>
-          scoreAiCitation(row.url, meta.title, meta.wordCount, meta.excerpt),
-        { concurrency: 3, retries: 2 },
-      );
-
-      for (let i = 0; i < chunk.length; i++) {
-        const row = chunk[i]!;
-        const meta = metaResults[i] ?? { title: null, excerpt: null, wordCount: 0 };
-        const citation = citationResults[i] ?? { score: 50, reason: "" };
-        try {
-          await db.insert(pagesTable).values({
-            url: row.url,
-            title: meta.title,
-            lastUpdated: row.lastUpdated,
-            clicks30d: 0,
-            clicksPrev30d: 0,
-            wordCount: meta.wordCount,
-            excerpt: meta.excerpt,
-            aiCitationScore: citation.score,
-            aiCitationReason: citation.reason,
-          });
-          upserted++;
-        } catch (rowErr) {
-          errors.push(`Error inserting ${row.url}: ${String(rowErr)}`);
-        }
-      }
-    }
-
-    await setSetting("lastSitemapSync", new Date().toISOString());
-
-    res.json({
-      success: true,
-      message: `Sync complete — ${upserted} pages imported with titles and AI citation scores.`,
-      upserted,
-      updated: 0,
-      errors: errors.slice(0, 10),
-    });
+    const result = await runSitemapSync();
+    const status = result.success ? 200 : (result.message.startsWith("No sitemap URL") ? 400 : 200);
+    res.status(status).json({ ...result, updated: 0 });
   } catch (err) {
     console.error("Sitemap sync error:", err);
     res.status(500).json({
       success: false,
       message: `Sitemap sync failed: ${String(err)}`,
-      upserted,
+      upserted: 0,
       updated: 0,
       errors: [String(err)],
     });
