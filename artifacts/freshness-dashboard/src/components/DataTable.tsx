@@ -633,53 +633,83 @@ export function DataTable({ pages, contentType, onContentTypeChange }: DataTable
                         )}
                       </td>
                       <td className="p-4">
-                        {page.semrushKeywords != null ? (
-                          <div className="flex flex-col gap-1">
-                            <button
-                              onClick={() => toggleKeywords(page.id)}
-                              className="flex items-center gap-1.5 hover:bg-white/5 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors text-left"
-                            >
-                              <span className="text-sm font-semibold text-foreground">{page.semrushKeywords}</span>
-                              <span className="text-xs text-muted-foreground">kw</span>
-                              <span className="text-xs text-muted-foreground mx-0.5">·</span>
-                              <span className="text-xs text-muted-foreground">{(page.semrushVolume ?? 0).toLocaleString()} vol</span>
-                              {expandedKeywords.has(page.id) ? (
-                                <ChevronUpIcon size={12} className="text-muted-foreground ml-auto" />
-                              ) : (
-                                <ChevronDown size={12} className="text-muted-foreground ml-auto" />
-                              )}
-                            </button>
-                            <AnimatePresence>
-                              {expandedKeywords.has(page.id) && page.semrushKeywordList && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="flex flex-col gap-0.5 pt-1 border-t border-white/5 mt-0.5 max-h-[200px] overflow-y-auto">
-                                    {page.semrushKeywordList.map((kw, idx) => (
-                                      <div key={idx} className="flex items-center gap-2 text-xs py-0.5 group/kw">
-                                        <span className="text-foreground/80 truncate max-w-[140px] flex-1" title={kw.keyword}>{kw.keyword}</span>
-                                        <span className="text-muted-foreground shrink-0">{kw.volume.toLocaleString()}</span>
-                                        <span className={cn(
-                                          "shrink-0 font-mono text-[10px] px-1 rounded",
-                                          kw.position <= 3 ? "text-success bg-success/10" :
-                                          kw.position <= 10 ? "text-blue-400 bg-blue-400/10" :
-                                          kw.position <= 20 ? "text-warning bg-warning/10" :
-                                          "text-muted-foreground bg-white/5"
-                                        )}>#{kw.position}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/50">—</span>
-                        )}
+                        {(() => {
+                          const gscList = page.gscKeywordList ?? [];
+                          const useGsc = gscList.length > 0;
+                          const semList = page.semrushKeywordList ?? [];
+                          const useSem = !useGsc && semList.length > 0;
+                          if (!useGsc && !useSem) {
+                            return <span className="text-xs text-muted-foreground/50">—</span>;
+                          }
+                          const count = useGsc ? gscList.length : (page.semrushKeywords ?? semList.length);
+                          const summaryRight = useGsc
+                            ? `${gscList.reduce((s, k) => s + k.clicks, 0).toLocaleString()} clicks`
+                            : `${(page.semrushVolume ?? 0).toLocaleString()} vol`;
+                          const source = useGsc ? 'GSC' : 'SEMrush';
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <button
+                                onClick={() => toggleKeywords(page.id)}
+                                className="flex items-center gap-1.5 hover:bg-white/5 rounded-md px-1.5 py-0.5 -mx-1.5 transition-colors text-left"
+                                title={`Source: ${source}`}
+                              >
+                                <span className="text-sm font-semibold text-foreground">{count}</span>
+                                <span className="text-xs text-muted-foreground">kw</span>
+                                <span className="text-xs text-muted-foreground mx-0.5">·</span>
+                                <span className="text-xs text-muted-foreground">{summaryRight}</span>
+                                <span className={cn(
+                                  "ml-1 text-[9px] font-mono px-1 rounded uppercase tracking-wider",
+                                  useGsc ? "text-emerald-400 bg-emerald-400/10" : "text-purple-400 bg-purple-400/10"
+                                )}>{source}</span>
+                                {expandedKeywords.has(page.id) ? (
+                                  <ChevronUpIcon size={12} className="text-muted-foreground ml-auto" />
+                                ) : (
+                                  <ChevronDown size={12} className="text-muted-foreground ml-auto" />
+                                )}
+                              </button>
+                              <AnimatePresence>
+                                {expandedKeywords.has(page.id) && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="flex flex-col gap-0.5 pt-1 border-t border-white/5 mt-0.5 max-h-[200px] overflow-y-auto">
+                                      {useGsc ? gscList.map((kw, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 text-xs py-0.5 group/kw">
+                                          <span className="text-foreground/80 truncate max-w-[140px] flex-1" title={kw.keyword}>{kw.keyword}</span>
+                                          <span className="text-muted-foreground shrink-0" title="Clicks (30d)">{kw.clicks.toLocaleString()}c</span>
+                                          <span className="text-muted-foreground shrink-0" title="Impressions (30d)">{kw.impressions.toLocaleString()}i</span>
+                                          <span className={cn(
+                                            "shrink-0 font-mono text-[10px] px-1 rounded",
+                                            kw.position <= 3 ? "text-success bg-success/10" :
+                                            kw.position <= 10 ? "text-blue-400 bg-blue-400/10" :
+                                            kw.position <= 20 ? "text-warning bg-warning/10" :
+                                            "text-muted-foreground bg-white/5"
+                                          )}>#{kw.position}</span>
+                                        </div>
+                                      )) : semList.map((kw, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 text-xs py-0.5 group/kw">
+                                          <span className="text-foreground/80 truncate max-w-[140px] flex-1" title={kw.keyword}>{kw.keyword}</span>
+                                          <span className="text-muted-foreground shrink-0">{kw.volume.toLocaleString()}</span>
+                                          <span className={cn(
+                                            "shrink-0 font-mono text-[10px] px-1 rounded",
+                                            kw.position <= 3 ? "text-success bg-success/10" :
+                                            kw.position <= 10 ? "text-blue-400 bg-blue-400/10" :
+                                            kw.position <= 20 ? "text-warning bg-warning/10" :
+                                            "text-muted-foreground bg-white/5"
+                                          )}>#{kw.position}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">

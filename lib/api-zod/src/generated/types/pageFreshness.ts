@@ -5,6 +5,7 @@
  * Content Freshness Dashboard API
  * OpenAPI spec version: 0.1.0
  */
+import type { PageFreshnessGscKeywordListItem } from "./pageFreshnessGscKeywordListItem";
 import type { PageFreshnessSemrushKeywordListItem } from "./pageFreshnessSemrushKeywordListItem";
 import type { PageFreshnessTrafficTrend } from "./pageFreshnessTrafficTrend";
 import type { PageFreshnessTriageStatus } from "./pageFreshnessTriageStatus";
@@ -33,6 +34,11 @@ export interface PageFreshness {
   semrushVolume?: number | null;
   semrushKd?: number | null;
   semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
+  gscTopKeyword?: string | null;
+  gscTopPosition?: number | null;
+  gscTopClicks?: number | null;
+  gscKeywordList?: PageFreshnessGscKeywordListItem[] | null;
+  gscLastSync?: Date | null;
   priorityScore: number;
   refreshRecommendations: string[];
   workflowStatus?: PageFreshnessWorkflowStatus;

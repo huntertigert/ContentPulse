@@ -26,6 +26,11 @@ export interface PageFreshnessData {
   semrushVolume: number | null;
   semrushKd: number | null;
   semrushKeywordList: { keyword: string; position: number; volume: number; kd: number }[] | null;
+  gscTopKeyword: string | null;
+  gscTopPosition: number | null;
+  gscTopClicks: number | null;
+  gscKeywordList: { keyword: string; clicks: number; impressions: number; position: number; ctr: number }[] | null;
+  gscLastSync: Date | null;
   priorityScore: number;
   refreshRecommendations: string[];
   workflowStatus: string | null;
@@ -119,7 +124,12 @@ export function calculateFreshness(page: Page): PageFreshnessData {
     }
   }
 
-  const semrushKeywordList = page.semrushKeywordList ? JSON.parse(page.semrushKeywordList) : null;
+  const safeParse = <T,>(raw: string | null): T | null => {
+    if (!raw) return null;
+    try { return JSON.parse(raw) as T; } catch { return null; }
+  };
+  const semrushKeywordList = safeParse<{ keyword: string; position: number; volume: number; kd: number }[]>(page.semrushKeywordList);
+  const gscKeywordList = safeParse<{ keyword: string; clicks: number; impressions: number; position: number; ctr: number }[]>(page.gscKeywordList);
 
   const priorityScore = calculatePriorityScore({
     decayScore,
@@ -171,6 +181,11 @@ export function calculateFreshness(page: Page): PageFreshnessData {
     semrushVolume: page.semrushVolume,
     semrushKd: page.semrushKd,
     semrushKeywordList,
+    gscTopKeyword: page.gscTopKeyword,
+    gscTopPosition: page.gscTopPosition,
+    gscTopClicks: page.gscTopClicks,
+    gscKeywordList,
+    gscLastSync: page.gscLastSync,
     priorityScore,
     refreshRecommendations,
     workflowStatus: page.workflowStatus,

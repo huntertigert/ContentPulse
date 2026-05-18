@@ -49,6 +49,21 @@ export const GetPagesResponseItem = zod.object({
       }),
     )
     .nullish(),
+  gscTopKeyword: zod.string().nullish(),
+  gscTopPosition: zod.number().nullish(),
+  gscTopClicks: zod.number().nullish(),
+  gscKeywordList: zod
+    .array(
+      zod.object({
+        keyword: zod.string(),
+        clicks: zod.number(),
+        impressions: zod.number(),
+        position: zod.number(),
+        ctr: zod.number(),
+      }),
+    )
+    .nullish(),
+  gscLastSync: zod.date().nullish(),
   priorityScore: zod.number(),
   refreshRecommendations: zod.array(zod.string()),
   workflowStatus: zod.enum(["queued", "in_progress", "refreshed"]).nullish(),

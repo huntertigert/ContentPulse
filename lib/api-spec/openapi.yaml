@@ -302,6 +302,36 @@ components:
               kd:
                 type: number
             required: [keyword, position, volume, kd]
+        gscTopKeyword:
+          type: string
+          nullable: true
+        gscTopPosition:
+          type: number
+          nullable: true
+        gscTopClicks:
+          type: integer
+          nullable: true
+        gscKeywordList:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              keyword:
+                type: string
+              clicks:
+                type: integer
+              impressions:
+                type: integer
+              position:
+                type: number
+              ctr:
+                type: number
+            required: [keyword, clicks, impressions, position, ctr]
+        gscLastSync:
+          type: string
+          format: date-time
+          nullable: true
         priorityScore:
           type: number
         refreshRecommendations:

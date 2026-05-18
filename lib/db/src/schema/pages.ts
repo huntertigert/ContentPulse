@@ -19,6 +19,11 @@ export const pagesTable = pgTable("pages", {
   semrushVolume: integer("semrush_volume"),
   semrushKd: real("semrush_kd"),
   semrushKeywordList: text("semrush_keyword_list"),
+  gscTopKeyword: text("gsc_top_keyword"),
+  gscTopPosition: real("gsc_top_position"),
+  gscTopClicks: integer("gsc_top_clicks"),
+  gscKeywordList: text("gsc_keyword_list"),
+  gscLastSync: timestamp("gsc_last_sync"),
   workflowStatus: text("workflow_status"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

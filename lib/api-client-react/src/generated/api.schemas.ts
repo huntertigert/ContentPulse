@@ -34,6 +34,14 @@ export type PageFreshnessSemrushKeywordListItem = {
   kd: number;
 };
 
+export type PageFreshnessGscKeywordListItem = {
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  position: number;
+  ctr: number;
+};
+
 export type PageFreshnessWorkflowStatus =
   | (typeof PageFreshnessWorkflowStatus)[keyof typeof PageFreshnessWorkflowStatus]
   | null;
@@ -67,6 +75,11 @@ export interface PageFreshness {
   semrushVolume?: number | null;
   semrushKd?: number | null;
   semrushKeywordList?: PageFreshnessSemrushKeywordListItem[] | null;
+  gscTopKeyword?: string | null;
+  gscTopPosition?: number | null;
+  gscTopClicks?: number | null;
+  gscKeywordList?: PageFreshnessGscKeywordListItem[] | null;
+  gscLastSync?: string | null;
   priorityScore: number;
   refreshRecommendations: string[];
   workflowStatus?: PageFreshnessWorkflowStatus;

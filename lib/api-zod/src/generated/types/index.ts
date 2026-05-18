@@ -15,6 +15,7 @@ export * from "./csvUploadResult";
 export * from "./dashboardStats";
 export * from "./healthStatus";
 export * from "./pageFreshness";
+export * from "./pageFreshnessGscKeywordListItem";
 export * from "./pageFreshnessSemrushKeywordListItem";
 export * from "./pageFreshnessTrafficTrend";
 export * from "./pageFreshnessTriageStatus";

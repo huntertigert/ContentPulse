@@ -274,6 +274,65 @@ async function fetchGscClicksByPage(
   return clickMap;
 }
 
+export interface GscKeyword {
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  position: number;
+  ctr: number;
+}
+
+async function fetchGscKeywordsByPage(
+  serviceAccountJson: string,
+  siteUrl: string,
+  startDate: string,
+  endDate: string,
+): Promise<{ byPage: Record<string, GscKeyword[]>; rowsFetched: number; truncated: boolean }> {
+  const sc = await getGscClient(serviceAccountJson);
+  const PAGE_SIZE = 25000;
+  const MAX_PAGES = 10; // safety: up to 250k rows
+  const byPage: Record<string, GscKeyword[]> = {};
+  let rowsFetched = 0;
+  let truncated = false;
+
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const startRow = i * PAGE_SIZE;
+    const result = await sc.searchanalytics.query({
+      siteUrl,
+      requestBody: {
+        startDate,
+        endDate,
+        dimensions: ["page", "query"],
+        rowLimit: PAGE_SIZE,
+        startRow,
+      },
+    });
+    const rows = result.data.rows ?? [];
+    rowsFetched += rows.length;
+    for (const row of rows) {
+      const page = row.keys?.[0];
+      const query = row.keys?.[1];
+      if (!page || !query) continue;
+      (byPage[page] ||= []).push({
+        keyword: query,
+        clicks: row.clicks ?? 0,
+        impressions: row.impressions ?? 0,
+        position: Math.round((row.position ?? 0) * 10) / 10,
+        ctr: Math.round((row.ctr ?? 0) * 10000) / 100, // percentage
+      });
+    }
+    if (rows.length < PAGE_SIZE) break;
+    if (i === MAX_PAGES - 1) truncated = true;
+  }
+
+  // Keep top 50 keywords per page by clicks (then impressions) to bound storage
+  for (const page of Object.keys(byPage)) {
+    byPage[page].sort((a, b) => b.clicks - a.clicks || b.impressions - a.impressions);
+    byPage[page] = byPage[page].slice(0, 50);
+  }
+  return { byPage, rowsFetched, truncated };
+}
+
 function dateStr(daysAgo: number): string {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
@@ -456,17 +515,36 @@ router.post("/gsc", async (_req, res) => {
     const start30 = dateStr(30);
     const start60 = dateStr(60);
 
-    const [current30, prev30] = await Promise.all([
+    const [current30, prev30, keywordsResult] = await Promise.all([
       fetchGscClicksByPage(serviceAccountJson, siteUrl, start30, end),
       fetchGscClicksByPage(serviceAccountJson, siteUrl, start60, start30),
+      fetchGscKeywordsByPage(serviceAccountJson, siteUrl, start30, end),
     ]);
+    const keywordsByPage = keywordsResult.byPage;
+    if (keywordsResult.truncated) {
+      console.warn(`[gsc] keyword fetch truncated at ${keywordsResult.rowsFetched} rows — some lower-volume queries omitted`);
+    }
 
-    const allPages = new Set([...Object.keys(current30), ...Object.keys(prev30)]);
+    const allPages = new Set([
+      ...Object.keys(current30),
+      ...Object.keys(prev30),
+      ...Object.keys(keywordsByPage),
+    ]);
+    const now = new Date();
 
     for (const pageUrl of allPages) {
       try {
         const clicks30d = current30[pageUrl] ?? 0;
         const clicksPrev30d = prev30[pageUrl] ?? 0;
+        const keywords = keywordsByPage[pageUrl] ?? [];
+        const top = keywords[0];
+        const gscFields = {
+          gscTopKeyword: top?.keyword ?? null,
+          gscTopPosition: top?.position ?? null,
+          gscTopClicks: top?.clicks ?? null,
+          gscKeywordList: keywords.length > 0 ? JSON.stringify(keywords) : null,
+          gscLastSync: now,
+        };
 
         let urlPath = pageUrl;
         try {
@@ -491,7 +569,7 @@ router.post("/gsc", async (_req, res) => {
         if (existingPath.length > 0) {
           await db
             .update(pagesTable)
-            .set({ clicks30d, clicksPrev30d })
+            .set({ clicks30d, clicksPrev30d, ...gscFields })
             .where(eq(pagesTable.id, existingPath[0].id));
           updated++;
         } else {
@@ -501,6 +579,7 @@ router.post("/gsc", async (_req, res) => {
             clicks30d,
             clicksPrev30d,
             wordCount: 0,
+            ...gscFields,
           });
           updated++;
         }
