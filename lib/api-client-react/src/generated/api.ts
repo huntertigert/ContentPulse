@@ -24,6 +24,8 @@ import type {
   CsvUploadResult,
   DashboardStats,
   HealthStatus,
+  MonthlyRefreshInput,
+  MonthlyRefreshResult,
   PageFreshness,
   RescoreAiBody,
   SemrushUploadResult,
@@ -440,6 +442,92 @@ export const useUploadSemrushCsv = <
   TContext
 > => {
   return useMutation(getUploadSemrushCsvMutationOptions(options));
+};
+
+/**
+ * @summary Monthly refresh — crawl sitemap, enrich with SEMrush and GSC CSVs
+ */
+export const getMonthlyRefreshUrl = () => {
+  return `/api/pages/monthly-refresh`;
+};
+
+export const monthlyRefresh = async (
+  monthlyRefreshInput: MonthlyRefreshInput,
+  options?: RequestInit,
+): Promise<MonthlyRefreshResult> => {
+  return customFetch<MonthlyRefreshResult>(getMonthlyRefreshUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(monthlyRefreshInput),
+  });
+};
+
+export const getMonthlyRefreshMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof monthlyRefresh>>,
+    TError,
+    { data: BodyType<MonthlyRefreshInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof monthlyRefresh>>,
+  TError,
+  { data: BodyType<MonthlyRefreshInput> },
+  TContext
+> => {
+  const mutationKey = ["monthlyRefresh"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof monthlyRefresh>>,
+    { data: BodyType<MonthlyRefreshInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return monthlyRefresh(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MonthlyRefreshMutationResult = NonNullable<
+  Awaited<ReturnType<typeof monthlyRefresh>>
+>;
+export type MonthlyRefreshMutationBody = BodyType<MonthlyRefreshInput>;
+export type MonthlyRefreshMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Monthly refresh — crawl sitemap, enrich with SEMrush and GSC CSVs
+ */
+export const useMonthlyRefresh = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof monthlyRefresh>>,
+    TError,
+    { data: BodyType<MonthlyRefreshInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof monthlyRefresh>>,
+  TError,
+  { data: BodyType<MonthlyRefreshInput> },
+  TContext
+> => {
+  return useMutation(getMonthlyRefreshMutationOptions(options));
 };
 
 /**

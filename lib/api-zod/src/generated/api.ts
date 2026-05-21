@@ -111,6 +111,42 @@ export const UploadSemrushCsvResponse = zod.object({
 });
 
 /**
+ * @summary Monthly refresh — crawl sitemap, enrich with SEMrush and GSC CSVs
+ */
+export const MonthlyRefreshBody = zod.object({
+  semrushCsv: zod
+    .string()
+    .optional()
+    .describe("SEMrush Organic Positions CSV (optional)"),
+  gscCsv: zod
+    .string()
+    .optional()
+    .describe('Google Search Console \"Pages\" CSV export (optional)'),
+});
+
+export const MonthlyRefreshResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+  sitemap: zod.object({
+    success: zod.boolean(),
+    message: zod.string(),
+    upserted: zod.number(),
+    errors: zod.array(zod.string()),
+  }),
+  semrush: zod.object({
+    imported: zod.number(),
+    skipped: zod.number(),
+    matched: zod.number(),
+    errors: zod.array(zod.string()),
+  }),
+  gsc: zod.object({
+    matched: zod.number(),
+    skipped: zod.number(),
+    errors: zod.array(zod.string()),
+  }),
+});
+
+/**
  * @summary Update workflow status for multiple pages
  */
 export const BatchUpdateStatusBody = zod.object({

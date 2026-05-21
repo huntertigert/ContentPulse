@@ -95,6 +95,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SemrushUploadResult"
+  /pages/monthly-refresh:
+    post:
+      operationId: monthlyRefresh
+      tags: [pages]
+      summary: Monthly refresh — crawl sitemap, enrich with SEMrush and GSC CSVs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonthlyRefreshInput"
+      responses:
+        "200":
+          description: Combined refresh result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlyRefreshResult"
   /pages/batch-status:
     patch:
       operationId: batchUpdateStatus
@@ -518,3 +536,52 @@ components:
           items:
             type: string
       required: [imported, skipped, matched, errors]
+    MonthlyRefreshInput:
+      type: object
+      properties:
+        semrushCsv:
+          type: string
+          description: SEMrush Organic Positions CSV (optional)
+        gscCsv:
+          type: string
+          description: Google Search Console "Pages" CSV export (optional)
+    GscCsvResult:
+      type: object
+      properties:
+        matched:
+          type: integer
+        skipped:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required: [matched, skipped, errors]
+    SitemapStepResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        upserted:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required: [success, message, upserted, errors]
+    MonthlyRefreshResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        sitemap:
+          $ref: "#/components/schemas/SitemapStepResult"
+        semrush:
+          $ref: "#/components/schemas/SemrushUploadResult"
+        gsc:
+          $ref: "#/components/schemas/GscCsvResult"
+      required: [success, message, sitemap, semrush, gsc]

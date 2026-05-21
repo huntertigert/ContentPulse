@@ -1,30 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Layers, FileWarning, CheckCircle, Sparkles, Plus, Wifi, WifiOff, RefreshCw, LogOut, Type } from 'lucide-react';
+import { Layers, FileWarning, CheckCircle, Sparkles, RefreshCw, LogOut, Type } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getGetPagesQueryKey, getGetStatsQueryKey } from '@workspace/api-client-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
-import { useSettings, useSyncActions } from '@/hooks/use-sync';
+import { useSettings } from '@/hooks/use-sync';
 import { useToast } from '@/hooks/use-toast';
 import { StatCard } from '@/components/StatCard';
 import { FreshnessLoop } from '@/components/FreshnessLoop';
 import { DataTable, filterByContentType, type ContentType } from '@/components/DataTable';
 import { CsvUploadModal } from '@/components/CsvUploadModal';
-import { ConnectModal } from '@/components/ConnectModal';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const { pages, stats, isLoading } = useDashboardData();
-  const { settings, syncStatus } = useSettings();
-  const { syncSitemap, syncGsc } = useSyncActions();
+  const { syncStatus } = useSettings();
   const { user } = useUser();
   const { signOut } = useClerk();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [contentType, setContentType] = useState<ContentType>('blog');
   const [isFixingTitles, setIsFixingTitles] = useState(false);
 
@@ -70,14 +67,10 @@ export default function Dashboard() {
     };
   }, [filteredPages]);
 
-  const isConnected = syncStatus?.sitemapConfigured || syncStatus?.gscConfigured
-    || settings?.sitemapUrl || settings?.gscHasCredentials;
-  const isSyncing = syncSitemap.isPending || syncGsc.isPending;
-
-  const handleQuickSync = () => {
-    if (syncStatus?.sitemapConfigured || settings?.sitemapUrl) syncSitemap.mutate({});
-    if ((syncStatus?.gscConfigured || settings?.gscHasCredentials) && !syncSitemap.isPending) syncGsc.mutate({});
-  };
+  const lastRefresh = syncStatus?.lastSitemapSync ? new Date(syncStatus.lastSitemapSync) : null;
+  const lastRefreshLabel = lastRefresh
+    ? lastRefresh.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
 
   if (isLoading) {
     return (
@@ -120,21 +113,27 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-2 text-lg max-w-xl">
               Monitor content decay, prioritize updates, and optimize your pages for AI Search Generation (GEO).
             </p>
-            <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground/70">
+            <div className="mt-4 flex items-center gap-5 text-xs text-muted-foreground/70 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[9px] font-bold shrink-0">1</span>
-                <span>Set up <span className="text-foreground/80 font-medium">Connected</span> with your sitemap + GSC URL</span>
+                <span>Export this month's <span className="text-foreground/80 font-medium">SEMrush</span> and <span className="text-foreground/80 font-medium">GSC</span> CSVs</span>
               </div>
               <div className="w-4 h-px bg-white/10" />
               <div className="flex items-center gap-1.5">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[9px] font-bold shrink-0">2</span>
-                <span>Click <span className="text-foreground/80 font-medium">Import CSV</span> or <span className="text-foreground/80 font-medium">Sync Now</span></span>
+                <span>Click <span className="text-foreground/80 font-medium">Monthly Refresh</span> and drop them in</span>
               </div>
               <div className="w-4 h-px bg-white/10" />
               <div className="flex items-center gap-1.5">
                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[9px] font-bold shrink-0">3</span>
                 <span>Review scores and triage</span>
               </div>
+              {lastRefreshLabel && (
+                <>
+                  <div className="w-4 h-px bg-white/10" />
+                  <span className="text-foreground/60">Last refresh: <span className="text-foreground/80 font-medium">{lastRefreshLabel}</span></span>
+                </>
+              )}
             </div>
           </motion.div>
 
@@ -143,31 +142,6 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-center gap-2 flex-wrap"
           >
-            {/* Connection status + quick sync */}
-            <button
-              onClick={() => setIsConnectModalOpen(true)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all",
-                isConnected
-                  ? "bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/15"
-                  : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-foreground"
-              )}
-            >
-              {isConnected ? <Wifi size={15} /> : <WifiOff size={15} />}
-              {isConnected ? "Connected" : "Connect Site"}
-            </button>
-
-            {isConnected && (
-              <button
-                onClick={handleQuickSync}
-                disabled={isSyncing}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-all disabled:opacity-50"
-              >
-                <RefreshCw size={15} className={cn(isSyncing && "animate-spin")} />
-                {isSyncing ? "Syncing..." : "Sync Now"}
-              </button>
-            )}
-
             {untitledCount > 0 && (
               <button
                 onClick={handleFixTitles}
@@ -184,8 +158,8 @@ export default function Dashboard() {
               onClick={() => setIsUploadModalOpen(true)}
               className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
             >
-              <Plus size={18} />
-              Import CSV
+              <RefreshCw size={18} />
+              Monthly Refresh
             </button>
 
             {user && (
@@ -221,20 +195,14 @@ export default function Dashboard() {
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground mb-3">No content being tracked yet</h2>
             <p className="text-muted-foreground max-w-md mb-8">
-              Connect your site for automatic live tracking, or upload a CSV export from Google Search Console or your CMS.
+              Run your first monthly refresh — upload this month's SEMrush and GSC CSV exports and the dashboard will populate.
             </p>
             <div className="flex gap-3 flex-wrap justify-center">
               <button
-                onClick={() => setIsConnectModalOpen(true)}
+                onClick={() => setIsUploadModalOpen(true)}
                 className="px-8 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:bg-primary/90 transition-all hover:-translate-y-1"
               >
-                Connect My Site
-              </button>
-              <button
-                onClick={() => setIsUploadModalOpen(true)}
-                className="px-8 py-3 rounded-xl font-semibold bg-white/10 text-foreground hover:bg-white/15 transition-all hover:-translate-y-1 border border-white/10"
-              >
-                Upload CSV
+                Run Monthly Refresh
               </button>
             </div>
           </motion.div>
@@ -257,7 +225,6 @@ export default function Dashboard() {
       </div>
 
       <CsvUploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
-      <ConnectModal isOpen={isConnectModalOpen} onClose={() => setIsConnectModalOpen(false)} />
     </div>
   );
 }

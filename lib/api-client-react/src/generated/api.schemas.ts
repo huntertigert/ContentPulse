@@ -175,6 +175,34 @@ export interface SemrushUploadResult {
   errors: string[];
 }
 
+export interface MonthlyRefreshInput {
+  /** SEMrush Organic Positions CSV (optional) */
+  semrushCsv?: string;
+  /** Google Search Console "Pages" CSV export (optional) */
+  gscCsv?: string;
+}
+
+export interface GscCsvResult {
+  matched: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface SitemapStepResult {
+  success: boolean;
+  message: string;
+  upserted: number;
+  errors: string[];
+}
+
+export interface MonthlyRefreshResult {
+  success: boolean;
+  message: string;
+  sitemap: SitemapStepResult;
+  semrush: SemrushUploadResult;
+  gsc: GscCsvResult;
+}
+
 export type RescoreAiBodyDateFilter =
   (typeof RescoreAiBodyDateFilter)[keyof typeof RescoreAiBodyDateFilter];
 
