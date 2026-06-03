@@ -1,1 +1,3 @@
-- [Clerk auth in Replit iframe](clerk-auth-iframe.md) — `__session` cookie blocked in preview; send Clerk JWT as Bearer; clerkClient is an object in @clerk/express v2; requireAuth must fail closed.
+- [Clerk auth in Replit iframe](clerk-auth-iframe.md) — preview blocks the session cookie; authenticate the API with a Clerk Bearer token instead.
+- [Sitemap blog filter](sitemap-blog-filter.md) — sitemap sync intentionally keeps only /blog/ URLs; not a bug.
+- [GitHub push](github-push.md) — how to mirror this repo to huntertigert/ContentPulse.
