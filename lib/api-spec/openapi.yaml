@@ -186,30 +186,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Settings"
-  /sync/sitemap:
-    post:
-      operationId: syncSitemap
-      tags: [sync]
-      summary: Crawl sitemap and sync pages
-      responses:
-        "200":
-          description: Sync result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SyncResult"
-  /sync/gsc:
-    post:
-      operationId: syncGsc
-      tags: [sync]
-      summary: Pull data from Google Search Console API
-      responses:
-        "200":
-          description: Sync result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SyncResult"
   /sync/rescore-ai:
     post:
       operationId: rescoreAi

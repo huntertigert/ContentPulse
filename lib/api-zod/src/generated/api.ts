@@ -222,28 +222,6 @@ export const UpdateSettingsResponse = zod.object({
 });
 
 /**
- * @summary Crawl sitemap and sync pages
- */
-export const SyncSitemapResponse = zod.object({
-  success: zod.boolean(),
-  message: zod.string(),
-  upserted: zod.number(),
-  updated: zod.number(),
-  errors: zod.array(zod.string()),
-});
-
-/**
- * @summary Pull data from Google Search Console API
- */
-export const SyncGscResponse = zod.object({
-  success: zod.boolean(),
-  message: zod.string(),
-  upserted: zod.number(),
-  updated: zod.number(),
-  errors: zod.array(zod.string()),
-});
-
-/**
  * @summary Re-score AI citation likelihood for pages
  */
 export const RescoreAiBody = zod.object({
