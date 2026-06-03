@@ -25,8 +25,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     if (!email) {
       try {
-        const client = await clerkClient();
-        const user = await client.users.getUser(userId as string);
+        const user = await clerkClient.users.getUser(userId as string);
         email = user.emailAddresses?.find(
           (e: any) => e.id === user.primaryEmailAddressId,
         )?.emailAddress;
@@ -36,9 +35,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     if (!email) {
-      console.warn(`No email found for user ${userId}, allowing access (domain check skipped)`);
-      (req as any).userId = userId;
-      return next();
+      console.warn(`No email could be determined for user ${userId}; denying access`);
+      return res.status(403).json({ error: "Access restricted to Alkami users only" });
     }
 
     const domain = email.split("@")[1]?.toLowerCase();

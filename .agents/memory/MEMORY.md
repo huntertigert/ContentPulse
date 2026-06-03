@@ -1,2 +1,1 @@
-- [Sitemap blog filter](sitemap-blog-filter.md) — runSitemapSync intentionally keeps only /blog/ URLs; not a bug, don't "fix" it.
-- [GitHub push target](github-push.md) — this repo pushes to huntertigert/ContentPulse main via the github integration token.
+- [Clerk auth in Replit iframe](clerk-auth-iframe.md) — `__session` cookie blocked in preview; send Clerk JWT as Bearer; clerkClient is an object in @clerk/express v2; requireAuth must fail closed.

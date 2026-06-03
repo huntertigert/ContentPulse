@@ -2,6 +2,20 @@ export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
 
+type AuthTokenGetter = () => Promise<string | null | undefined> | string | null | undefined;
+
+let authTokenGetter: AuthTokenGetter | null = null;
+
+/**
+ * Register a function that returns the current auth token (e.g. a Clerk session
+ * JWT). When set, customFetch attaches it as an `Authorization: Bearer <token>`
+ * header on every request. This is required because the app runs inside an
+ * iframe where the session cookie is treated as third-party and blocked.
+ */
+export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
+  authTokenGetter = getter;
+}
+
 export type ErrorType<T = unknown> = ApiError<T>;
 
 export type BodyType<T> = T;
@@ -297,9 +311,25 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
+  if (authTokenGetter && !headers.has("authorization")) {
+    try {
+      const token = await authTokenGetter();
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+    } catch {
+      // If token retrieval fails, proceed without it — the server will 401.
+    }
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const response = await fetch(input, {
+    ...init,
+    method,
+    headers,
+    credentials: init.credentials ?? "include",
+  });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
