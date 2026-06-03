@@ -1,0 +1,2 @@
+- [Sitemap blog filter](sitemap-blog-filter.md) — runSitemapSync intentionally keeps only /blog/ URLs; not a bug, don't "fix" it.
+- [GitHub push target](github-push.md) — this repo pushes to huntertigert/ContentPulse main via the github integration token.
