@@ -45,7 +45,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     (req as any).userId = userId;
-    next();
+    (req as any).userEmail = email.toLowerCase();
+    return next();
   } catch (err) {
     return res.status(401).json({ error: "Unauthorized" });
   }

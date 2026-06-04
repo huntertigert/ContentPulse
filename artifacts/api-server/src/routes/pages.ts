@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-zod";
 import { calculateFreshness } from "../lib/freshness.js";
 import { runSitemapSync } from "./sync.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 
 const router: IRouter = Router();
 
@@ -110,7 +111,7 @@ router.post("/", async (req, res) => {
 });
 
 // POST /pages/upload-csv
-router.post("/upload-csv", async (req, res) => {
+router.post("/upload-csv", requireAdmin, async (req, res) => {
   try {
     const body = UploadCsvBody.parse(req.body);
     const result = await runManualCsvUpload(body.csvData);
@@ -122,7 +123,7 @@ router.post("/upload-csv", async (req, res) => {
 });
 
 // POST /pages/upload-semrush-csv
-router.post("/upload-semrush-csv", async (req, res) => {
+router.post("/upload-semrush-csv", requireAdmin, async (req, res) => {
   try {
     const body = UploadCsvBody.parse(req.body);
     const result = await runSemrushUpload(body.csvData);
@@ -135,7 +136,7 @@ router.post("/upload-semrush-csv", async (req, res) => {
 
 // POST /pages/monthly-refresh
 // Single entry point: crawls sitemap, then enriches with SEMrush + GSC CSV data.
-router.post("/monthly-refresh", async (req, res) => {
+router.post("/monthly-refresh", requireAdmin, async (req, res) => {
   const semrushCsv = typeof req.body?.semrushCsv === "string" ? req.body.semrushCsv : "";
   const gscCsv = typeof req.body?.gscCsv === "string" ? req.body.gscCsv : "";
 

@@ -13,6 +13,11 @@ import { DataTable, filterByContentType, type ContentType } from '@/components/D
 import { CsvUploadModal } from '@/components/CsvUploadModal';
 import { cn } from '@/lib/utils';
 
+const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? 'hunter.tigert@alkami.com')
+  .split(',')
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
+
 export default function Dashboard() {
   const { pages, stats, isLoading } = useDashboardData();
   const { syncStatus } = useSettings();
@@ -20,6 +25,9 @@ export default function Dashboard() {
   const { signOut } = useClerk();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const currentEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const isAdmin = !!currentEmail && ADMIN_EMAILS.includes(currentEmail);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [contentType, setContentType] = useState<ContentType>('blog');
@@ -154,13 +162,15 @@ export default function Dashboard() {
               </button>
             )}
 
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <RefreshCw size={18} />
-              Monthly Refresh
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+              >
+                <RefreshCw size={18} />
+                Monthly Refresh
+              </button>
+            )}
 
             {user && (
               <div className="flex items-center gap-2 ml-2">
@@ -195,16 +205,20 @@ export default function Dashboard() {
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground mb-3">No content being tracked yet</h2>
             <p className="text-muted-foreground max-w-md mb-8">
-              Run your first monthly refresh — upload this month's SEMrush and GSC CSV exports and the dashboard will populate.
+              {isAdmin
+                ? "Run your first monthly refresh — upload this month's SEMrush and GSC CSV exports and the dashboard will populate."
+                : "No content is being tracked yet. The workspace admin needs to run the monthly refresh to populate the dashboard."}
             </p>
-            <div className="flex gap-3 flex-wrap justify-center">
-              <button
-                onClick={() => setIsUploadModalOpen(true)}
-                className="px-8 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:bg-primary/90 transition-all hover:-translate-y-1"
-              >
-                Run Monthly Refresh
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex gap-3 flex-wrap justify-center">
+                <button
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="px-8 py-3 rounded-xl font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] hover:bg-primary/90 transition-all hover:-translate-y-1"
+                >
+                  Run Monthly Refresh
+                </button>
+              </div>
+            )}
           </motion.div>
         ) : (
           <>
@@ -224,7 +238,9 @@ export default function Dashboard() {
         )}
       </div>
 
-      <CsvUploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
+      {isAdmin && (
+        <CsvUploadModal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
+      )}
     </div>
   );
 }
