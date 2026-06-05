@@ -14,10 +14,11 @@ data import is immediately live for the whole team.
 
 # Admin-only data imports
 
-Because imports mutate the shared dataset, the data-import endpoints
-(`/pages/monthly-refresh`, `/pages/upload-csv`, `/pages/upload-semrush-csv`) are
-restricted to admins via the `requireAdmin` middleware (runs after `requireAuth`,
-which sets `req.userEmail`).
+Because imports mutate the shared dataset, the data-mutating endpoints
+(`/pages/monthly-refresh`, `/pages/upload-csv`, `/pages/upload-semrush-csv`, and
+`/sync/fix-titles`) are restricted to admins via the `requireAdmin` middleware
+(runs after `requireAuth`, which sets `req.userEmail`). Apply `requireAdmin`
+per-route to any new endpoint that writes to the shared `pages` data.
 
 - Admin allowlist comes from the `ADMIN_EMAILS` env var (comma-separated),
   with a default set in code to the workspace owner's email on both backend and

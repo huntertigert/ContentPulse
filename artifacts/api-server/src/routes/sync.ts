@@ -4,6 +4,7 @@ import { eq, gte, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { batchProcess } from "@workspace/integrations-openai-ai-server/batch";
 import { getAllSettings, getSetting, setSetting } from "./settings.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 
 const router: IRouter = Router();
 
@@ -442,7 +443,7 @@ router.post("/rescore-ai", async (req, res) => {
 });
 
 // POST /sync/fix-titles — resolve relative URLs and re-scrape missing titles
-router.post("/fix-titles", async (_req, res) => {
+router.post("/fix-titles", requireAdmin, async (_req, res) => {
   let updated = 0;
   try {
     const sitemapUrl = await getSetting("sitemapUrl");

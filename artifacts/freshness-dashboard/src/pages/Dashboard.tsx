@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [isFixingTitles, setIsFixingTitles] = useState(false);
 
   const handleFixTitles = async () => {
+    if (!isAdmin) return;
     setIsFixingTitles(true);
     try {
       const res = await fetch(`${import.meta.env.BASE_URL}api/sync/fix-titles`, { method: 'POST' });
@@ -150,7 +151,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-center gap-2 flex-wrap"
           >
-            {untitledCount > 0 && (
+            {isAdmin && untitledCount > 0 && (
               <button
                 onClick={handleFixTitles}
                 disabled={isFixingTitles}
