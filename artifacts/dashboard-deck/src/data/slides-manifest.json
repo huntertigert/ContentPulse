@@ -48,8 +48,16 @@
     "speakerNotes": ""
   },
   {
-    "id": "a1b2c3d4-7777-4aaa-bbbb-000000000007",
+    "id": "a1b2c3d4-8888-4aaa-bbbb-000000000008",
     "position": 7,
+    "filepath": "src/pages/slides/ScoringSlide.tsx",
+    "title": "How Scoring Works",
+    "description": "Explains the Decay Score (freshness-based) and the Priority Score (weighted ranking) and how each is calculated.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-7777-4aaa-bbbb-000000000007",
+    "position": 8,
     "filepath": "src/pages/slides/ClosingSlide.tsx",
     "title": "Take Control",
     "description": "Closing slide with key value propositions.",
