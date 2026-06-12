@@ -15,34 +15,34 @@ export default function ClosingSlide() {
         <div className="flex items-center gap-[1vw] mb-[3vh]">
           <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-healthy" />
           <span className="text-[1.4vw] font-body tracking-[0.12em] text-accent uppercase">
-            Content Intelligence
+            Start Today
           </span>
         </div>
         <h2 className="text-[5.5vw] leading-[0.95] font-display font-bold tracking-tight text-text">
-          Take control of
+          Rework what
         </h2>
         <h2 className="text-[5.5vw] leading-[0.95] font-display font-bold tracking-tight text-primary">
-          content freshness
+          actually matters
         </h2>
-        <p className="mt-[3vh] max-w-[45vw] text-[1.6vw] leading-relaxed font-body text-muted">
-          Stop guessing which pages need attention. Let data, AI, and keyword intelligence drive your content refresh strategy.
+        <p className="mt-[3vh] max-w-[48vw] text-[1.6vw] leading-relaxed font-body text-muted">
+          Open the dashboard, sort by Priority, and pick your first reworks. Let the scores — not gut feel — decide where your effort goes.
         </p>
-        <div className="mt-[5vh] flex items-center gap-[3vw]">
+        <div className="mt-[5vh] flex items-center gap-[2.5vw]">
+          <div className="flex items-center gap-[0.6vw] text-[1.2vw] font-body text-muted/70">
+            <div className="w-[0.5vw] h-[0.5vw] rounded-full bg-healthy/50" />
+            <span>Freshness &amp; Decay</span>
+          </div>
           <div className="flex items-center gap-[0.6vw] text-[1.2vw] font-body text-muted/70">
             <div className="w-[0.5vw] h-[0.5vw] rounded-full bg-primary/50" />
-            <span>Priority Scoring</span>
+            <span>Priority Score</span>
           </div>
           <div className="flex items-center gap-[0.6vw] text-[1.2vw] font-body text-muted/70">
             <div className="w-[0.5vw] h-[0.5vw] rounded-full bg-accent/50" />
-            <span>AI Citation Prediction</span>
-          </div>
-          <div className="flex items-center gap-[0.6vw] text-[1.2vw] font-body text-muted/70">
-            <div className="w-[0.5vw] h-[0.5vw] rounded-full bg-healthy/50" />
-            <span>Workflow Tracking</span>
+            <span>AI Citation</span>
           </div>
           <div className="flex items-center gap-[0.6vw] text-[1.2vw] font-body text-muted/70">
             <div className="w-[0.5vw] h-[0.5vw] rounded-full bg-warning/50" />
-            <span>Keyword Intelligence</span>
+            <span>Keyword Opportunity</span>
           </div>
         </div>
       </div>

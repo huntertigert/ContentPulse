@@ -1,4 +1,4 @@
 - [Clerk auth in Replit iframe](clerk-auth-iframe.md) — preview blocks the session cookie; authenticate the API with a Clerk Bearer token instead.
 - [Shared data model & admin uploads](data-model-and-admin.md) — pages table is global (no per-user rows); imports are admin-only via ADMIN_EMAILS.
 - [Sitemap blog filter](sitemap-blog-filter.md) — sitemap sync intentionally keeps only /blog/ URLs; not a bug.
-- [GitHub push](github-push.md) — how to mirror this repo to huntertigert/ContentPulse.
+- [GitHub push](github-push.md) — how to mirror this repo to the user's GitHub (local master → remote main, token via github integration).

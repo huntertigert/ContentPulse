@@ -3,64 +3,64 @@
     "id": "a1b2c3d4-1111-4aaa-bbbb-000000000001",
     "position": 1,
     "filepath": "src/pages/slides/TitleSlide.tsx",
-    "title": "Content Freshness Dashboard",
-    "description": "Title slide introducing the Content Freshness Dashboard for SEO and AI Search.",
+    "title": "The Content Rework Playbook",
+    "description": "Title slide framing the deck as a practical content-rework guide for product marketers.",
     "speakerNotes": ""
   },
   {
     "id": "a1b2c3d4-2222-4aaa-bbbb-000000000002",
     "position": 2,
     "filepath": "src/pages/slides/ProblemSlide.tsx",
-    "title": "The Problem",
-    "description": "Content decay and the urgency created by AI search.",
+    "title": "Why We Rework",
+    "description": "The case for prioritizing reworks: silent content decay plus the rise of AI search.",
     "speakerNotes": ""
   },
   {
     "id": "a1b2c3d4-3333-4aaa-bbbb-000000000003",
     "position": 3,
     "filepath": "src/pages/slides/OverviewSlide.tsx",
-    "title": "Dashboard Overview",
-    "description": "Full dashboard screenshot showing stats, freshness loop, and data table.",
+    "title": "Your Ranked Worklist",
+    "description": "Dashboard screenshot framed as a pre-ranked worklist of pages to rework.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-8888-4aaa-bbbb-000000000008",
+    "position": 4,
+    "filepath": "src/pages/slides/ScoringSlide.tsx",
+    "title": "Freshness & Decay",
+    "description": "Explains the Freshness Score (time-based bands) and Decay Score (100 - freshness plus penalties) in marketer terms.",
     "speakerNotes": ""
   },
   {
     "id": "a1b2c3d4-4444-4aaa-bbbb-000000000004",
-    "position": 4,
-    "filepath": "src/pages/slides/FeaturesSlide.tsx",
-    "title": "Key Capabilities",
-    "description": "Six core features: Priority Score, AI Citation, Freshness Loop, Triage, Keywords, Recommendations.",
-    "speakerNotes": ""
-  },
-  {
-    "id": "a1b2c3d4-5555-4aaa-bbbb-000000000005",
     "position": 5,
-    "filepath": "src/pages/slides/WorkflowSlide.tsx",
-    "title": "From Data to Action",
-    "description": "Four-step workflow: Import, Analyze, Triage, Execute with batch actions.",
+    "filepath": "src/pages/slides/FeaturesSlide.tsx",
+    "title": "Priority Score",
+    "description": "Explains the Priority Score as the master ranking of what to rework first, with max points per factor.",
     "speakerNotes": ""
   },
   {
     "id": "a1b2c3d4-6666-4aaa-bbbb-000000000006",
     "position": 6,
     "filepath": "src/pages/slides/DataSlide.tsx",
-    "title": "Data Sources & Scoring",
-    "description": "Data integrations (GSC, SEMrush, CSV, Sitemap) and priority score formula breakdown.",
+    "title": "The Supporting Signals",
+    "description": "Explains AI Citation, Keyword Opportunity, Traffic Trend, Triage Status, Content Depth, and Refresh Recommendations.",
     "speakerNotes": ""
   },
   {
-    "id": "a1b2c3d4-8888-4aaa-bbbb-000000000008",
+    "id": "a1b2c3d4-5555-4aaa-bbbb-000000000005",
     "position": 7,
-    "filepath": "src/pages/slides/ScoringSlide.tsx",
-    "title": "How Scoring Works",
-    "description": "Explains the Decay Score (freshness-based) and the Priority Score (weighted ranking) and how each is calculated.",
+    "filepath": "src/pages/slides/WorkflowSlide.tsx",
+    "title": "Your Rework Loop",
+    "description": "The four-step monthly rework loop: Find, Understand, Rework, Track.",
     "speakerNotes": ""
   },
   {
     "id": "a1b2c3d4-7777-4aaa-bbbb-000000000007",
     "position": 8,
     "filepath": "src/pages/slides/ClosingSlide.tsx",
-    "title": "Take Control",
-    "description": "Closing slide with key value propositions.",
+    "title": "Start Today",
+    "description": "Closing call to action: open the dashboard, sort by priority, start reworking.",
     "speakerNotes": ""
   }
 ]
