@@ -9,12 +9,12 @@ export default function ScoringSlide() {
   ];
 
   const priorityParts = [
-    { label: "Decay", weight: "35%", note: "how stale the page is", color: "text-critical" },
-    { label: "Keyword Opportunity", weight: "20%", note: "search volume + ranking position", color: "text-accent" },
-    { label: "Traffic Value", weight: "15%", note: "clicks the page earns", color: "text-primary" },
-    { label: "Traffic Decline", weight: "10%", note: "how fast traffic is dropping", color: "text-warning" },
-    { label: "AI Citation", weight: "8%", note: "likely to be cited by AI search", color: "text-indigo-300" },
-    { label: "Content Depth", weight: "6%", note: "thin pages that need expansion", color: "text-emerald-300" },
+    { label: "Decay", weight: "35", note: "how stale the page is", color: "text-critical" },
+    { label: "Keyword Opportunity", weight: "25", note: "search volume, ranking position + difficulty", color: "text-accent" },
+    { label: "Traffic Value", weight: "15", note: "clicks the page earns", color: "text-primary" },
+    { label: "Traffic Decline", weight: "10", note: "how fast traffic is dropping", color: "text-warning" },
+    { label: "AI Citation", weight: "8", note: "likely to be cited by AI search", color: "text-indigo-300" },
+    { label: "Content Depth", weight: "6", note: "thin pages that need expansion", color: "text-emerald-300" },
   ];
 
   return (
@@ -64,13 +64,17 @@ export default function ScoringSlide() {
           <div className="flex-1 flex flex-col">
             <span className="text-[1.7vw] font-display font-bold text-primary mb-[0.5vh]">Priority Score</span>
             <p className="text-[1.1vw] font-body text-muted leading-relaxed mb-[2vh] max-w-[34vw]">
-              A 0–100 ranking of <span className="text-text">what to fix first</span>. It blends decay with business
-              value, so a stale page that earns traffic and ranks for valuable keywords rises to the top.
+              A 0–100 ranking of <span className="text-text">what to fix first</span>. Each factor adds up to a
+              maximum number of points, so a stale page that earns traffic and ranks for valuable keywords
+              rises to the top. Max points per factor:
             </p>
             <div className="flex flex-col gap-[1.1vh]">
               {priorityParts.map((p) => (
                 <div key={p.label} className="flex items-baseline gap-[1vw]">
-                  <span className={`text-[1.4vw] font-display font-bold ${p.color} w-[4vw]`}>{p.weight}</span>
+                  <span className={`font-display font-bold ${p.color} w-[4.5vw]`}>
+                    <span className="text-[1.4vw]">{p.weight}</span>
+                    <span className="text-[0.85vw] text-muted ml-[0.3vw]">pts</span>
+                  </span>
                   <div className="flex flex-col">
                     <span className="text-[1.2vw] font-body text-text leading-tight">{p.label}</span>
                     <span className="text-[1vw] font-body text-muted leading-tight">{p.note}</span>
