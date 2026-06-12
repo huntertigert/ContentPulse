@@ -19,7 +19,7 @@ export default function WorkflowSlide() {
                 <span className="text-[2vw] font-display font-bold text-primary">1</span>
               </div>
               <span className="text-[1.5vw] font-display font-bold text-text text-center">Import</span>
-              <span className="text-[1.1vw] font-body text-muted text-center leading-relaxed max-w-[14vw]">CSV upload, sitemap crawl, or Google Search Console API sync</span>
+              <span className="text-[1.1vw] font-body text-muted text-center leading-relaxed max-w-[14vw]">Admin runs the monthly refresh: sitemap crawl plus SEMrush &amp; GSC CSV uploads</span>
             </div>
             <div className="mt-[2.5vw] w-[4vw] h-px bg-gradient-to-r from-primary/40 to-accent/40" />
             <div className="flex-1 flex flex-col items-center gap-[1.5vh]">
@@ -47,18 +47,23 @@ export default function WorkflowSlide() {
             </div>
           </div>
         </div>
-        <div className="flex gap-[2vw] mt-[3vh]">
-          <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-surface/60 border border-white/5">
-            <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-blue-400" />
-            <span className="text-[1.1vw] font-body text-muted">Queued</span>
+        <div className="flex items-center justify-between mt-[3vh]">
+          <div className="flex gap-[2vw]">
+            <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-surface/60 border border-white/5">
+              <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-blue-400" />
+              <span className="text-[1.1vw] font-body text-muted">Queued</span>
+            </div>
+            <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-surface/60 border border-white/5">
+              <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-warning" />
+              <span className="text-[1.1vw] font-body text-muted">In Progress</span>
+            </div>
+            <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-surface/60 border border-white/5">
+              <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-healthy" />
+              <span className="text-[1.1vw] font-body text-muted">Refreshed</span>
+            </div>
           </div>
-          <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-surface/60 border border-white/5">
-            <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-warning" />
-            <span className="text-[1.1vw] font-body text-muted">In Progress</span>
-          </div>
-          <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-surface/60 border border-white/5">
-            <div className="w-[0.6vw] h-[0.6vw] rounded-full bg-healthy" />
-            <span className="text-[1.1vw] font-body text-muted">Refreshed</span>
+          <div className="flex items-center gap-[0.6vw] px-[1.2vw] py-[0.6vw] rounded-[0.5vw] bg-primary/10 border border-primary/25">
+            <span className="text-[1.1vw] font-body text-primary font-semibold">Admin uploads &middot; team views</span>
           </div>
         </div>
       </div>

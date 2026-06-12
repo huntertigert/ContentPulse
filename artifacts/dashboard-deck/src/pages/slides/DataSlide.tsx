@@ -20,7 +20,7 @@ export default function DataSlide() {
               </div>
               <div className="flex flex-col gap-[0.3vh]">
                 <span className="text-[1.4vw] font-display font-bold text-text">Google Search Console</span>
-                <span className="text-[1.1vw] font-body text-muted">Live API sync for clicks, impressions, and traffic trends</span>
+                <span className="text-[1.1vw] font-body text-muted">Monthly Pages CSV export for clicks and position data</span>
               </div>
             </div>
             <div className="flex items-start gap-[1vw] p-[1.5vw] rounded-[0.8vw] bg-surface/50 border border-white/5">
@@ -84,7 +84,7 @@ export default function DataSlide() {
           </div>
           <div className="mt-[2vh] p-[1.5vw] rounded-[0.8vw] bg-surface/50 border border-primary/20">
             <span className="text-[1.2vw] font-body text-primary font-semibold">AI-Powered</span>
-            <p className="text-[1.1vw] font-body text-muted mt-[0.5vh] leading-relaxed">OpenAI GPT-4o-mini scores each page for AI citation likelihood with a 0-100 score and written reasoning</p>
+            <p className="text-[1.1vw] font-body text-muted mt-[0.5vh] leading-relaxed">OpenAI GPT-4o-mini scores each page 0-100 for AI citation likelihood with written reasoning; pages scoring 65+ are flagged "Likely to be cited"</p>
           </div>
         </div>
       </div>
